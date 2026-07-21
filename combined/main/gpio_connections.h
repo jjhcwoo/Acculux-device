@@ -1,0 +1,15 @@
+#define GPIO_EXT_LED 38
+#define GPIO_EXT_BTN 21
+#define GPIO_SCL 47
+#define GPIO_SDA 48
+#define GPIO_STATUS_LED 8
+#define GPIO_IMU0_SDI 13
+#define GPIO_IMU0_SDO 11
+#define GPIO_IMU0_CLK 12
+#define GPIO_IMU0_CS 10
+#define GPIO_IMU0_INT 9
+#define GPIO_IMU1_SDI 16
+#define GPIO_IMU1_SDO 6
+#define GPIO_IMU1_CLK 7
+#define GPIO_IMU1_CS 15
+#define GPIO_IMU1_INT 17

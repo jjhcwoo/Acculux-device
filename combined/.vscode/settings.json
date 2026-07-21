@@ -4,7 +4,7 @@
   "idf.openOcdConfigs": [
     "board/esp32s3-builtin.cfg"
   ],
-  "idf.portWin": "COM3",
+  "idf.port": "/dev/ttyACM0",
   "idf.currentSetup": "/home/aodrenah/.espressif/v6.0.2/esp-idf",
   "idf.customExtraVars": {
     "IDF_TARGET": "esp32s3"
@@ -13,9 +13,8 @@
   "clangd.arguments": [
     "--background-index",
     "--query-driver=**",
-    "--compile-commands-dir=/home/aodrenah/Documents/Capstone/IMU_test/build"
+    "--compile-commands-dir=/home/aodrenah/Documents/Capstone/combined/build"
   ],
   "idf.flashType": "UART",
-  "idf.port": "/dev/ttyACM0",
   "idf.monitorPort": "/dev/ttyACM0"
 }
