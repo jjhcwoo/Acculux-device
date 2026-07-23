@@ -101,11 +101,12 @@ static void gpio_task(void* arg)
             // fwrite(imu_arr, 4, sizeof(imu_arr), stdout);
             // fwrite(f_arr, 4, sizeof(f_arr), stdout);
 
+            printf("%d,", gpio_get_level(GPIO_EXT_BTN));
+            printf("%d,%d,%d,%d,", force_sensor_top_left, force_sensor_bottom_left, force_sensor_bottom_right, force_sensor_top_right);
             printf("%0.8f,%0.8f,%0.8f,", accelerometer_x(imu0hdl), accelerometer_y(imu0hdl), accelerometer_z(imu0hdl));
             printf("%0.8f,%0.8f,%0.8f,", gyroscope_x(imu0hdl), gyroscope_y(imu0hdl), gyroscope_z(imu0hdl));
             printf("%0.8f,%0.8f,%0.8f,", accelerometer_x(imu1hdl), accelerometer_y(imu1hdl), accelerometer_z(imu1hdl));
             printf("%0.8f,%0.8f,%0.8f,", gyroscope_x(imu1hdl), gyroscope_y(imu1hdl), gyroscope_z(imu1hdl));
-            printf("%d,%d,%d,%d", force_sensor_top_left, force_sensor_bottom_left, force_sensor_bottom_right, force_sensor_top_right);
             printf("\n");
         }
     }
@@ -114,6 +115,26 @@ static void gpio_task(void* arg)
 void app_main(void)
 {
     uart_set_baudrate(UART_NUM_0, 5000000);
+
+    gpio_config_t io_conf = {
+        .pin_bit_mask = 1ULL << GPIO_EXT_BTN,
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&io_conf);
+
+    io_conf.pin_bit_mask = (1ULL << GPIO_STATUS_LED)|(1ULL << GPIO_EXT_LED);
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    gpio_config(&io_conf);
+
+    gpio_set_level(GPIO_EXT_LED, 1);
+    gpio_set_level(GPIO_STATUS_LED, 1);
+
 
     // 1kHz=6, 100Hz=8, 6 is too fast for 5mbaud
     int acc_odr = 7;
@@ -186,14 +207,11 @@ void app_main(void)
     printf("ACC1X,ACC1Y,ACC1Z,GYR1X,GYR1Y,GYR1Z,ACC2X,ACC2Y,ACC2Z,GYR2X,GYR2Y,GYR2Z,F1,F2,F3,F4,BTN\n");
 
     // see https://github.com/espressif/esp-idf/blob/v6.0.1/examples/peripherals/gpio/generic_gpio/main/gpio_example_main.c
-    gpio_config_t io_conf = {
-        .intr_type = GPIO_INTR_NEGEDGE,
-        .mode = GPIO_MODE_INPUT,
-        .pin_bit_mask = ((1 << GPIO_IMU0_INT)|(1<<GPIO_IMU1_INT)),
-        .pull_down_en = GPIO_PULLDOWN_ENABLE,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-    };
-
+    io_conf.intr_type = GPIO_INTR_NEGEDGE;
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pin_bit_mask = ((1 << GPIO_IMU0_INT)|(1<<GPIO_IMU1_INT));
+    io_conf.pull_down_en = GPIO_PULLDOWN_ENABLE;
+    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
     gpio_config(&io_conf);
 
     gpio_evt_queue = xQueueCreate(10, sizeof(ICM42688*));
@@ -202,11 +220,17 @@ void app_main(void)
 
     gpio_install_isr_service(0);
 
+    printf("Data header:\n");
+    printf("BTN,F1,F2,F3,F4,ACC1X,ACC1Y,ACC1Z,GYR1X,GYR1Y,GYR1Z,ACC2X,ACC2Y,ACC2Z,GYR2X,GYR2Y,GYR2Z");
+
     gpio_isr_handler_add(GPIO_IMU0_INT, gpio_isr_handler, (void*) &imu0hdl);
     ESP_LOGI("IMU0", "Interrupt registered");
 
     gpio_isr_handler_add(GPIO_IMU1_INT, gpio_isr_handler, (void*) &imu1hdl);
     ESP_LOGI("IMU1", "Interrupt registered");
+
+    gpio_set_level(GPIO_EXT_LED, 0);
+    gpio_set_level(GPIO_STATUS_LED, 0);
 
     i2c_master_bus_config_t i2c_mst_config = {
         .clk_source = I2C_CLK_SRC_DEFAULT,
@@ -237,6 +261,6 @@ void app_main(void)
     while(1)
     {
         update_ADC(dev_handle_left, dev_handle_right);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }

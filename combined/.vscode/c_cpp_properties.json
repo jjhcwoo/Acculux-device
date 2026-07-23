@@ -2,8 +2,8 @@
   "configurations": [
     {
       "name": "ESP-IDF",
-      "compilerPath": "/home/aodrenah/.espressif/tools/xtensa-esp-elf/esp-15.2.0_20251204/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc",
-      "compileCommands": "${config:idf.buildPath}/compile_commands.json",
+      "compilerPath": "/Users/aodren/.espressif/tools/xtensa-esp-elf/esp-15.2.0_20251204/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc",
+      "compileCommands": "/Users/aodren/Documents/Capstone/combined/build/compile_commands.json",
       "intelliSenseMode": "gcc-x86",
       "includePath": [
         "${workspaceFolder}/**"
