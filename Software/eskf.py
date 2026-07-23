@@ -15,8 +15,6 @@ State:
     Quaternion
     Accelerometer bias
     Gyroscope bias
-
-Author: Justin
 """
 
 import numpy as np
@@ -46,6 +44,9 @@ class ESKF:
         # dbg (3)
         #
         self.P = np.eye(15)
+
+        # Debug storage
+        self.specific_force_samples = []
 
 
     def reset(self):
@@ -119,26 +120,35 @@ class ESKF:
         # 4. Remove gravity
         # ---------------------------------------
 
-        accel_world -= config.GRAVITY
+        #accel_world -= config.GRAVITY
+
+        specific_force = accel_world - config.GRAVITY
+        self.specific_force_samples.append(
+            specific_force.copy()
+        )
+
+        accel_world = specific_force
 
 
         # ---------------------------------------
-        # 5. Update velocity
+        # 5. Update position
         # ---------------------------------------
 
-        self.state.velocity += (
-            accel_world * dt
+        old_velocity = self.state.velocity.copy()
+
+        self.state.position += (
+            old_velocity * dt
+            +
+            0.5 * accel_world * dt**2
         )
 
 
         # ---------------------------------------
-        # 6. Update position
+        # 6. Update velocity
         # ---------------------------------------
 
-        self.state.position += (
-            self.state.velocity * dt
-            +
-            0.5 * accel_world * dt**2
+        self.state.velocity += (
+            accel_world * dt
         )
 
 
@@ -151,7 +161,6 @@ class ESKF:
             gyro_corrected,
             dt
         )
-
 
     def predict_covariance(
         self,

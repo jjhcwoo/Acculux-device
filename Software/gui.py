@@ -19,8 +19,11 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout()
 
-        layout.addWidget(PyQtGraph3DWindow(), stretch = 50)
-        layout.addWidget(bottomWindow())
+        self.plot3D = PyQtGraph3DWindow()
+        layout.addWidget(self.plot3D, stretch=50)
+
+        self.bottom = bottomWindow()
+        layout.addWidget(self.bottom)
 
         widget = QWidget()
         widget.setLayout(layout)
@@ -53,6 +56,7 @@ class bottomWindow(QWidget):
             }
         """)
         self.calibrateButton.setFixedSize(250, 100)
+        self.calibrateButton.clicked.connect(self.calibrate) 
         layout.addWidget(self.calibrateButton)
 
         self.scanButton = QPushButton("Scan")
@@ -65,6 +69,7 @@ class bottomWindow(QWidget):
             }
         """)
         self.scanButton.setFixedSize(250, 100)
+        self.scanButton.clicked.connect(self.scan) 
         layout.addWidget(self.scanButton)
 
         self.saveButton = QPushButton("Save")
@@ -77,9 +82,21 @@ class bottomWindow(QWidget):
             }
         """)
         self.saveButton.setFixedSize(250, 100)
+        self.saveButton.clicked.connect(self.save)
         layout.addWidget(self.saveButton)
 
-        layout.addWidget(SensorPanel(), stretch = 2)
+        self.sensorPanel = SensorPanel()
+        layout.addWidget(self.sensorPanel, stretch=2)
+
+        def calibrate(self):
+            print("You clicked the calibrate button!")
+
+        def scan(self):
+            print("You clicked the scan button!")
+            
+        def save(self): # Exports results as a .csv
+            print("You clicked the save button!")
+
 
 class PyQtGraph3DWindow(QWidget):
     def __init__(self):
@@ -144,12 +161,41 @@ class PyQtGraph3DWindow(QWidget):
         )
         self.view.addItem(item)
 
-        sensor_point = gl.GLScatterPlotItem(
-            pos=np.array([[np.sqrt(3), np.sqrt(3), np.sqrt(3)]]),   # Initial position
+        self.sensor_point = gl.GLScatterPlotItem(
+            pos=np.array([[0, 0, radius]]),   # Initial position
             color=(0.5, 0, 0, 1),          # Red
             size=20
         )
-        self.view.addItem(sensor_point)
+        self.view.addItem(self.sensor_point)
+
+        self.radius = radius
+
+    def update_orientation(self, roll, pitch):
+        """
+        Update sensor position using orientation angles.
+
+        roll:
+            rotation about x-axis (degrees)
+
+        pitch:
+            rotation about y-axis (degrees)
+        """
+
+        roll = np.deg2rad(roll)
+        pitch = np.deg2rad(pitch)
+
+        r = self.radius
+
+        # Convert spherical coordinates
+        x = r * np.sin(pitch)
+        y = r * np.sin(roll)
+        z = r * np.sqrt(
+            max(0, 1 - np.sin(pitch)**2 - np.sin(roll)**2)
+        )
+
+        self.sensor_point.setData(
+            pos=np.array([[x, y, z]])
+        )
 
 
 
@@ -191,19 +237,35 @@ class SensorPanel(QGroupBox):
 
         self.setLayout(layout)
 
-# You need one (and only one) QApplication instance per application.
-# Pass in sys.argv to allow command line arguments for your app.
-# If you know you won't use command line arguments QApplication([]) works too.
-app = QApplication(sys.argv)
+    def update_angles(self, roll, pitch, yaw):
+        self.rollLabel.setText(f"{roll:.2f}°")
+        self.pitchLabel.setText(f"{pitch:.2f}°")
+        self.yawLabel.setText(f"{yaw:.2f}°")
 
-# Create a Qt widget, which will be our window.
-window = MainWindow()
-window.resize(1200, 800)
-window.showMaximized()  # IMPORTANT!!!!! Windows are hidden by default.
+# # You need one (and only one) QApplication instance per application.
+# # Pass in sys.argv to allow command line arguments for your app.
+# # If you know you won't use command line arguments QApplication([]) works too.
+# app = QApplication(sys.argv)
 
-# Start the event loop.
-app.exec()
+# # Create a Qt widget, which will be our window.
+# window = MainWindow()
+# window.resize(1200, 800)
+# window.showMaximized()  # IMPORTANT!!!!! Windows are hidden by default.
+
+# # Start the event loop.
+# app.exec()
 
 
-# Your application won't reach here until you exit and the event
-# loop has stopped.
+# # Your application won't reach here until you exit and the event
+# # loop has stopped.
+
+def create_gui():
+
+    app = QApplication(sys.argv)
+
+    window = MainWindow()
+
+    window.resize(1200,800)
+    window.showMaximized()
+
+    return app, window

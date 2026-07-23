@@ -171,3 +171,39 @@ class Quaternion:
         q_new = Quaternion.multiply(q, dq)
 
         return Quaternion.normalize(q_new)
+
+    @staticmethod
+    def from_accel(accel):
+        """
+        Estimate roll and pitch from gravity.
+        Assumes accel is body-frame [ax, ay, az].
+        """
+
+        ax, ay, az = accel
+
+        roll = np.arctan2(
+            ay,
+            az
+        )
+
+        pitch = np.arctan2(
+            -ax,
+            np.sqrt(ay*ay + az*az)
+        )
+
+        # yaw is unknowable from accelerometer
+        yaw = 0.0
+
+        cr = np.cos(roll/2)
+        sr = np.sin(roll/2)
+        cp = np.cos(pitch/2)
+        sp = np.sin(pitch/2)
+        cy = np.cos(yaw/2)
+        sy = np.sin(yaw/2)
+
+        return np.array([
+            cr*cp*cy + sr*sp*sy,
+            sr*cp*cy - cr*sp*sy,
+            cr*sp*cy + sr*cp*sy,
+            cr*cp*sy - sr*sp*cy
+        ])
