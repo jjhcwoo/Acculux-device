@@ -1,14 +1,5 @@
-"""
-main.py
-
-Runs the ESKF over IMU data pulled from a CSV file.
-
-Usage:
-    python main.py path/to/data.csv --sample-rate 100
-    python main.py path/to/data.csv --timestamp-column TIME
-
-Author: Justin
-"""
+# Usage:
+#     python main.py Data.csv --sample-rate 250
 
 import argparse
 import numpy as np
@@ -20,12 +11,7 @@ from gui import create_gui
 
 
 def quaternion_to_euler(q):
-    """
-    Convert quaternion [w,x,y,z] to Euler angles (degrees).
-
-    Returns:
-        roll, pitch, yaw in degrees
-    """
+    # Convert quaternion [w,x,y,z] to Euler angles (degrees)
 
     w, x, y, z = q
 
@@ -71,17 +57,14 @@ def run(csv_path, sample_rate=None, timestamp_column=None):
 
     filt = ESKF()
 
-
-    # ---------------------------------------
-    # Sensor bias values
-    # ---------------------------------------
-
+    # Accelerometer bias values
     filt.state.set_accel_bias([
         0.005,
         0.001,
         -0.058
     ])
-
+    
+    # Gyroscope bias values
     filt.state.set_gyro_bias([
         -0.00071,
         -0.01172,

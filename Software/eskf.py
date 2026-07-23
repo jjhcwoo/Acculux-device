@@ -1,21 +1,17 @@
-"""
-eskf.py
+# Error-State Kalman Filter implementation for IMU-based probe tracking.
 
-Error-State Kalman Filter implementation for IMU-based probe tracking.
+# Current version:
+#     - Nominal state propagation
+#     - Quaternion orientation update
+#     - Position and velocity integration
+#     - Framework for future covariance and correction steps
 
-Current version:
-    - Nominal state propagation
-    - Quaternion orientation update
-    - Position and velocity integration
-    - Framework for future covariance and correction steps
-
-State:
-    Position
-    Velocity
-    Quaternion
-    Accelerometer bias
-    Gyroscope bias
-"""
+# State:
+#     Position
+#     Velocity
+#     Quaternion
+#     Accelerometer bias
+#     Gyroscope bias
 
 import numpy as np
 
@@ -27,9 +23,8 @@ import config
 class ESKF:
 
     def __init__(self):
-        """
-        Initialize filter.
-        """
+        # Initialize filter.
+
 
         # Nominal state
         self.state = ProbeState()
@@ -50,11 +45,9 @@ class ESKF:
 
 
     def reset(self):
-        """
-        Reset filter to initial probe position.
+        # Reset filter to initial probe position
 
-        Called when probe is placed at nipple.
-        """
+        # Called when probe is placed at nipple
 
         self.state.reset()
 
@@ -62,27 +55,9 @@ class ESKF:
 
 
     def predict(self, accel, gyro, dt):
-        """
-        Prediction step.
+        # Prediction step
 
-        Inputs:
-            accel:
-                Accelerometer measurement
-                [ax, ay, az] m/s^2
-
-            gyro:
-                Gyroscope measurement
-                [gx, gy, gz] rad/s
-
-            dt:
-                timestep seconds
-
-        """
-
-        # ---------------------------------------
         # 1. Remove estimated sensor bias
-        # ---------------------------------------
-
         accel_corrected = (
             accel -
             self.state.accel_bias
@@ -93,11 +68,7 @@ class ESKF:
             self.state.gyro_bias
         )
 
-
-        # ---------------------------------------
         # 2. Update orientation
-        # ---------------------------------------
-
         self.state.quaternion = (
             Quaternion.integrate_gyro(
                 self.state.quaternion,
@@ -107,18 +78,12 @@ class ESKF:
         )
 
 
-        # ---------------------------------------
         # 3. Convert acceleration to world frame
-        # ---------------------------------------
-
         R = self.state.get_rotation_matrix()
 
         accel_world = R @ accel_corrected
 
-
-        # ---------------------------------------
         # 4. Remove gravity
-        # ---------------------------------------
 
         #accel_world -= config.GRAVITY
 
@@ -129,11 +94,7 @@ class ESKF:
 
         accel_world = specific_force
 
-
-        # ---------------------------------------
         # 5. Update position
-        # ---------------------------------------
-
         old_velocity = self.state.velocity.copy()
 
         self.state.position += (
@@ -142,20 +103,13 @@ class ESKF:
             0.5 * accel_world * dt**2
         )
 
-
-        # ---------------------------------------
         # 6. Update velocity
-        # ---------------------------------------
 
         self.state.velocity += (
             accel_world * dt
         )
 
-
-        # ---------------------------------------
         # 7. Covariance prediction placeholder
-        # ---------------------------------------
-
         self.predict_covariance(
             accel_corrected,
             gyro_corrected,
@@ -168,13 +122,10 @@ class ESKF:
         gyro,
         dt
     ):
-        """
-        Propagate error covariance.
+        # Propagate error covariance.
 
-        Future implementation:
-            P = FPF^T + Q
-
-        """
+        # Future implementation:
+        #     P = FPF^T + Q
 
         # Placeholder
         #
@@ -188,44 +139,28 @@ class ESKF:
 
 
     def update(self, measurement):
-        """
-        Measurement update.
+        # Measurement update.
 
-        Future implementation:
+        # Future implementation:
 
-        1. Compute innovation
-        2. Calculate Kalman gain
-        3. Estimate error state
-        4. Inject correction
-
-        """
+        # 1. Compute innovation
+        # 2. Calculate Kalman gain
+        # 3. Estimate error state
+        # 4. Inject correction
 
         pass
 
 
     def inject_error(self, dx):
-        """
-        Inject estimated error state.
-
-        Error state:
-
-            dx =
-            [
-            dp
-            dv
-            dtheta
-            dba
-            dbg
-            ]
-
-        """
-
+        # Inject estimated error state.
+        # Error state:
+        #     dx = [dp, dv, dtheta, dba, dbg]
+  
         dp = dx[0:3]
         dv = dx[3:6]
         dtheta = dx[6:9]
         dba = dx[9:12]
         dbg = dx[12:15]
-
 
         # Position correction
         self.state.position += dp
@@ -257,8 +192,6 @@ class ESKF:
 
 
     def get_state(self):
-        """
-        Return current estimated state.
-        """
+        # Return current estimated state
 
         return self.state

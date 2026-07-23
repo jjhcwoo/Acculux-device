@@ -1,21 +1,11 @@
-"""
-state.py
+# Stores the current state estimate of the probe.
 
-Stores the current state estimate of the probe.
-
-This class contains only the navigation state and utility functions.
-The prediction and correction algorithms are implemented in eskf.py.
-
-State vector:
-
-Position (3)
-Velocity (3)
-Quaternion (4)
-Accelerometer Bias (3)
-Gyroscope Bias (3)
-
-Total Nominal State = 16 variables
-"""
+# State vector:
+# Position (3)
+# Velocity (3)
+# Quaternion (4)
+# Accelerometer Bias (3)
+# Gyroscope Bias (3)
 
 import numpy as np
 
@@ -23,28 +13,24 @@ from quaternion import Quaternion
 
 
 class ProbeState:
-    """
-    Stores the nominal state of the probe.
+    # Stores the nominal state of the probe.
 
-    Position and velocity are expressed in the world frame.
+    # Position and velocity are expressed in the world frame.
 
-    Quaternion represents the orientation of the probe
-    relative to the world frame.
+    # Quaternion represents the orientation of the probe
+    # relative to the world frame.
 
-    Biases are estimated by the ESKF.
-    """
+    # Biases are estimated by the ESKF
 
     def __init__(self):
 
         self.reset()
 
     def reset(self):
-        """
-        Reset the probe to its initial state.
+        # Reset the probe to its initial state
 
-        Called when a new scan begins
-        (i.e., probe placed on the nipple).
-        """
+        # Call when a new scan begins
+        # (i.e., probe placed on the nipple)
 
         # Position (m)
         self.position = np.zeros(3)
@@ -67,19 +53,13 @@ class ProbeState:
         self.gyro_bias = np.zeros(3)
 
     def get_rotation_matrix(self):
-        """
-        Returns the current body-to-world
-        rotation matrix.
-        """
+        # Returns the current body-to-world rotation matrix
+
 
         return Quaternion.to_rotation_matrix(self.quaternion)
 
     def get_pose(self):
-        """
-        Returns the current pose.
-
-        Useful for visualization.
-        """
+        # Returns the current pose
 
         return {
             "position": self.position.copy(),
@@ -87,44 +67,32 @@ class ProbeState:
         }
 
     def set_position(self, position):
-        """
-        Update position.
-        """
+        # Update position
 
         self.position = np.asarray(position, dtype=float)
 
     def set_velocity(self, velocity):
-        """
-        Update velocity.
-        """
+        # Update velocity
 
         self.velocity = np.asarray(velocity, dtype=float)
 
     def set_quaternion(self, quaternion):
-        """
-        Update orientation.
-        """
+        # Update orientation
 
         self.quaternion = Quaternion.normalize(quaternion)
 
     def set_accel_bias(self, bias):
-        """
-        Update estimated accelerometer bias.
-        """
+        # Update estimated accelerometer bias.
 
         self.accel_bias = np.asarray(bias, dtype=float)
 
     def set_gyro_bias(self, bias):
-        """
-        Update estimated gyroscope bias.
-        """
-
+        # Update estimated gyroscope bias.
+        
         self.gyro_bias = np.asarray(bias, dtype=float)
 
     def print_state(self):
-        """
-        Print the current state.
-        """
+        # Print states
 
         print("\n========== Probe State ==========")
 

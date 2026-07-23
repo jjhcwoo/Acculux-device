@@ -1,16 +1,4 @@
-"""
-imu_csv_reader.py
-
-Reads real IMU data from a CSV file and serves it row-by-row,
-mimicking the IMUSimulator interface (accel, gyro, dt) so it can be
-dropped into existing ESKF code without changing predict()/main loop.
-
-Expected CSV columns:
-    ACC1X, ACC1Y, ACC1Z, GYR1X, GYR1Y, GYR1Z
-
-Author: Justin
-"""
-
+# Reads real IMU data from a CSV file and serves it row-by-row,
 import numpy as np
 import pandas as pd
 
@@ -23,24 +11,20 @@ class IMUCSVReader:
     ]
 
     def __init__(self, csv_path, sample_rate=None, timestamp_column=None):
-        """
-        Initialize reader.
+        # Inputs:
+        #     csv_path:
+        #         Path to CSV file.
 
-        Inputs:
-            csv_path:
-                Path to CSV file.
+        #     sample_rate:
+        #         IMU frequency in Hz. Use this if the CSV has no
+        #         timestamp column and rows are evenly spaced in time.
 
-            sample_rate:
-                IMU frequency in Hz. Use this if the CSV has no
-                timestamp column and rows are evenly spaced in time.
+        #     timestamp_column:
+        #         Name of a column containing timestamps (seconds).
+        #         If given, dt is computed from consecutive timestamp
+        #         differences instead of a fixed sample_rate.
 
-            timestamp_column:
-                Name of a column containing timestamps (seconds).
-                If given, dt is computed from consecutive timestamp
-                differences instead of a fixed sample_rate.
-
-        Exactly one of sample_rate or timestamp_column must be given.
-        """
+        # Exactly one of sample_rate or timestamp_column must be given.
 
         if (sample_rate is None) == (timestamp_column is None):
             raise ValueError(
@@ -81,25 +65,21 @@ class IMUCSVReader:
         self.index = 0
 
     def has_next(self):
-        """
-        True if there is another row left to read.
-        """
+        # Checks if there is another row left
 
         return self.index < self.n_rows
 
     def read(self):
-        """
-        Returns one row of IMU data, same shape as IMUSimulator.read():
+        # Returns one row of IMU data, same shape as IMUSimulator.read():
 
-            accel:
-                [ax, ay, az] m/s^2
+        #     accel:
+        #         [ax, ay, az] m/s^2
 
-            gyro:
-                [gx, gy, gz] rad/s
+        #     gyro:
+        #         [gx, gy, gz] rad/s
 
-            dt:
-                seconds since previous row
-        """
+        #     dt:
+        #         seconds since previous row
 
         if not self.has_next():
             raise StopIteration("No more IMU data in CSV")
@@ -125,8 +105,6 @@ class IMUCSVReader:
         return accel, gyro, dt
 
     def reset(self):
-        """
-        Reset reader back to the first row.
-        """
+        # Reset reader back to the first row
 
         self.index = 0

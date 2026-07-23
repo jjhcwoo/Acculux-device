@@ -1,16 +1,5 @@
-"""
-quaternion.py
-
-Quaternion utilities for IMU orientation tracking.
-
-Quaternion convention:
-    q = [w, x, y, z]
-
-Author: Justin
-"""
-
+# Quaternion for IMU orientation tracking.
 import numpy as np
-
 
 class Quaternion:
 
@@ -40,11 +29,8 @@ class Quaternion:
 
     @staticmethod
     def multiply(q1, q2):
-        """
-        Hamilton quaternion multiplication.
-
-        q = q1 ⊗ q2
-        """
+        # Hamilton quaternion multiplication.
+        # q = q1 ⊗ q2
 
         w1, x1, y1, z1 = q1
         w2, x2, y2, z2 = q2
@@ -61,12 +47,9 @@ class Quaternion:
 
     @staticmethod
     def from_axis_angle(axis, angle):
-        """
-        Create quaternion from axis-angle.
-
-        axis : length-3 vector
-        angle : radians
-        """
+        # Create quaternion from axis-angle.
+        # axis : length-3 vector
+        # angle : radians
 
         axis = np.asarray(axis, dtype=float)
         axis /= np.linalg.norm(axis)
@@ -84,9 +67,7 @@ class Quaternion:
 
     @staticmethod
     def to_rotation_matrix(q):
-        """
-        Convert quaternion to 3x3 rotation matrix.
-        """
+        # Convert quaternion to 3x3 rotation matrix
 
         q = Quaternion.normalize(q)
 
@@ -110,9 +91,7 @@ class Quaternion:
 
     @staticmethod
     def rotate_vector(q, v):
-        """
-        Rotate vector v using quaternion q.
-        """
+        # Rotate vector v using quaternion q
 
         R = Quaternion.to_rotation_matrix(q)
 
@@ -120,16 +99,7 @@ class Quaternion:
     
     @staticmethod
     def from_small_angle(delta_theta):
-        """
-        Convert a small rotation vector into
-        a quaternion correction.
-
-        Parameters:
-            delta_theta: np.array([rx, ry, rz])
-
-        Returns:
-            quaternion [w, x, y, z]
-        """
+        # Convert a small rotation vector intoa quaternion correction
 
         dq = np.zeros(4)
 
@@ -145,15 +115,7 @@ class Quaternion:
 
     @staticmethod
     def integrate_gyro(q, gyro, dt):
-        """
-        Integrate quaternion using gyroscope.
-
-        gyro:
-            angular velocity (rad/s)
-
-        dt:
-            timestep (s)
-        """
+        # Integrate quaternion using gyroscope
 
         gyro = np.asarray(gyro, dtype=float)
 
@@ -174,10 +136,7 @@ class Quaternion:
 
     @staticmethod
     def from_accel(accel):
-        """
-        Estimate roll and pitch from gravity.
-        Assumes accel is body-frame [ax, ay, az].
-        """
+        # Estimate roll and pitch from gravity
 
         ax, ay, az = accel
 

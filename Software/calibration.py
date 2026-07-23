@@ -19,12 +19,6 @@ class IMUCalibration:
         self,
         measurements
     ):
-        """
-        measurements:
-            list of tuples:
-            (accel, gyro)
-
-        """
 
         accel_values = []
         gyro_values = []
@@ -153,10 +147,6 @@ class IMUCalibration:
     #         self,
     #         accel_average
     # ):
-    #     """
-    #     Calculate quaternion that aligns
-    #     measured gravity with world gravity.
-    #     """
 
     #     # Normalize measured gravity direction
 

@@ -41,7 +41,7 @@ class bottomWindow(QWidget):
         background-color: green;
         border-radius: 15px;
         border: 2px solid black;
-""")
+    """)
         self.connectedLabel = QLabel("Connected:")
         self.connectedLabel.setFont(buttonFont)
         layout.addWidget(self.connectedLabel)
@@ -56,7 +56,7 @@ class bottomWindow(QWidget):
             }
         """)
         self.calibrateButton.setFixedSize(250, 100)
-        self.calibrateButton.clicked.connect(self.calibrate) 
+        # self.calibrateButton.clicked.connect(self.calibrate) 
         layout.addWidget(self.calibrateButton)
 
         self.scanButton = QPushButton("Scan")
@@ -69,7 +69,7 @@ class bottomWindow(QWidget):
             }
         """)
         self.scanButton.setFixedSize(250, 100)
-        self.scanButton.clicked.connect(self.scan) 
+        # self.scanButton.clicked.connect(self.scan) 
         layout.addWidget(self.scanButton)
 
         self.saveButton = QPushButton("Save")
@@ -82,20 +82,20 @@ class bottomWindow(QWidget):
             }
         """)
         self.saveButton.setFixedSize(250, 100)
-        self.saveButton.clicked.connect(self.save)
+        # self.saveButton.clicked.connect(self.save)
         layout.addWidget(self.saveButton)
 
         self.sensorPanel = SensorPanel()
         layout.addWidget(self.sensorPanel, stretch=2)
 
-        def calibrate(self):
-            print("You clicked the calibrate button!")
+        # def calibrate(self):
+        #     print("You clicked the calibrate button!")
 
-        def scan(self):
-            print("You clicked the scan button!")
+        # def scan(self):
+        #     print("You clicked the scan button!")
             
-        def save(self): # Exports results as a .csv
-            print("You clicked the save button!")
+        # def save(self): # Exports results as a .csv
+        #     print("You clicked the save button!")
 
 
 class PyQtGraph3DWindow(QWidget):
