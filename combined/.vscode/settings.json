@@ -4,17 +4,18 @@
   "idf.openOcdConfigs": [
     "board/esp32s3-builtin.cfg"
   ],
-  "idf.port": "/dev/ttyACM0",
-  "idf.currentSetup": "/home/aodrenah/.espressif/v6.0.2/esp-idf",
+  "idf.port": "/dev/tty.usbmodem14201",
+  "idf.currentSetup": "/Users/aodren/.espressif/v6.0.1/esp-idf",
   "idf.customExtraVars": {
-    "IDF_TARGET": "esp32s3"
+    "IDF_TARGET": "esp32s3",
+    "OPENOCD_USB_ADAPTER_LOCATION": "20-2"
   },
-  "clangd.path": "/home/aodrenah/.espressif/tools/esp-clang/esp-20.1.1_20250829/esp-clang/bin/clangd",
+  "clangd.path": "/Users/aodren/.espressif/tools/esp-clang/esp-20.1.1_20250829/esp-clang/bin/clangd",
   "clangd.arguments": [
     "--background-index",
     "--query-driver=**",
-    "--compile-commands-dir=/home/aodrenah/Documents/Capstone/combined/build"
+    "--compile-commands-dir=/Users/aodren/Documents/Capstone/combined/build"
   ],
   "idf.flashType": "UART",
-  "idf.monitorPort": "/dev/ttyACM0"
+  "idf.monitorPort": "/dev/tty.usbmodem14201"
 }
