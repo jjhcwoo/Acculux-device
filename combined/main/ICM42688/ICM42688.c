@@ -11,7 +11,7 @@
 
 #define ADDRESS_BITS 8
 #define SPI_MODE 3
-#define CLOCK_SPEED 500000
+#define CLOCK_SPEED 8000000
 
 esp_err_t icm42688_add_device(spi_host_device_t host_id, int cs_io_num, ICM42688 *imuhdl)
 {

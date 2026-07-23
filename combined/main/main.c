@@ -92,12 +92,20 @@ static void gpio_task(void* arg)
 
     for (;;) {
         if (xQueueReceive(gpio_evt_queue, &imu0hdl, portMAX_DELAY) && xQueueReceive(gpio_evt_queue, &imu1hdl, portMAX_DELAY)) {
-            //printf("%d\n", uxQueueMessagesWaiting(gpio_evt_queue));
+            // float imu_arr[] = {accelerometer_x(imu0hdl), accelerometer_y(imu0hdl), accelerometer_z(imu0hdl),
+            // gyroscope_x(imu0hdl), gyroscope_y(imu0hdl), gyroscope_z(imu0hdl),
+            // accelerometer_x(imu1hdl), accelerometer_y(imu1hdl), accelerometer_z(imu1hdl),
+            // gyroscope_x(imu1hdl), gyroscope_y(imu1hdl), gyroscope_z(imu1hdl)};
+            // int f_arr[] = {force_sensor_top_left, force_sensor_bottom_left, force_sensor_bottom_right, force_sensor_top_right};
+
+            // fwrite(imu_arr, 4, sizeof(imu_arr), stdout);
+            // fwrite(f_arr, 4, sizeof(f_arr), stdout);
+
             printf("%0.8f,%0.8f,%0.8f,", accelerometer_x(imu0hdl), accelerometer_y(imu0hdl), accelerometer_z(imu0hdl));
             printf("%0.8f,%0.8f,%0.8f,", gyroscope_x(imu0hdl), gyroscope_y(imu0hdl), gyroscope_z(imu0hdl));
             printf("%0.8f,%0.8f,%0.8f,", accelerometer_x(imu1hdl), accelerometer_y(imu1hdl), accelerometer_z(imu1hdl));
             printf("%0.8f,%0.8f,%0.8f,", gyroscope_x(imu1hdl), gyroscope_y(imu1hdl), gyroscope_z(imu1hdl));
-            printf("%d,%d,%d,%d", force_sensor_top_right, force_sensor_bottom_right, force_sensor_bottom_left, force_sensor_top_left);
+            printf("%d,%d,%d,%d", force_sensor_top_left, force_sensor_bottom_left, force_sensor_bottom_right, force_sensor_top_right);
             printf("\n");
         }
     }
@@ -105,7 +113,11 @@ static void gpio_task(void* arg)
 
 void app_main(void)
 {
-    uart_set_baudrate(UART_NUM_0, 921600);
+    uart_set_baudrate(UART_NUM_0, 5000000);
+
+    // 1kHz=6, 100Hz=8, 6 is too fast for 5mbaud
+    int acc_odr = 7;
+    int gyr_odr = 7;
 
     esp_err_t ret;
     uint8_t buffer[4];
@@ -124,9 +136,9 @@ void app_main(void)
     icm42688_write_register(imu0hdl.devhdl, DEVICE_CONFIG, buffer, 1);
     vTaskDelay(1000/ portTICK_PERIOD_MS);
 
-    // this changes the ODR to 100Hz.
-    accelerometer_set_odr(&imu0hdl, 8);
-    gyroscope_set_odr(&imu0hdl, 8);
+    // this changes the ODR to 1kHz (6), 100Hz(8).
+    accelerometer_set_odr(&imu0hdl, acc_odr);
+    gyroscope_set_odr(&imu0hdl, gyr_odr);
 
     // enable and configure interrupt
     // set interrupt to push pull
@@ -151,8 +163,8 @@ void app_main(void)
     vTaskDelay(1000/ portTICK_PERIOD_MS);
 
     // this changes the ODR to 100Hz.
-    accelerometer_set_odr(&imu1hdl, 8);
-    gyroscope_set_odr(&imu1hdl, 8);
+    accelerometer_set_odr(&imu1hdl, acc_odr);
+    gyroscope_set_odr(&imu1hdl, gyr_odr);
 
     // enable and configure interrupt
     // set interrupt to push pull
@@ -169,6 +181,9 @@ void app_main(void)
     // turn on accelerometer and gyroscope
     buffer[0] = 0x1F;
     icm42688_write_register(imu1hdl.devhdl, PWR_MGMT0, buffer, 1);
+
+    printf("Sensors configured, data header:\n");
+    printf("ACC1X,ACC1Y,ACC1Z,GYR1X,GYR1Y,GYR1Z,ACC2X,ACC2Y,ACC2Z,GYR2X,GYR2Y,GYR2Z,F1,F2,F3,F4,BTN\n");
 
     // see https://github.com/espressif/esp-idf/blob/v6.0.1/examples/peripherals/gpio/generic_gpio/main/gpio_example_main.c
     gpio_config_t io_conf = {
