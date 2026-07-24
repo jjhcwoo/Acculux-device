@@ -92,22 +92,26 @@ static void gpio_task(void* arg)
 
     for (;;) {
         if (xQueueReceive(gpio_evt_queue, &imu0hdl, portMAX_DELAY) && xQueueReceive(gpio_evt_queue, &imu1hdl, portMAX_DELAY)) {
-            // float imu_arr[] = {accelerometer_x(imu0hdl), accelerometer_y(imu0hdl), accelerometer_z(imu0hdl),
-            // gyroscope_x(imu0hdl), gyroscope_y(imu0hdl), gyroscope_z(imu0hdl),
-            // accelerometer_x(imu1hdl), accelerometer_y(imu1hdl), accelerometer_z(imu1hdl),
-            // gyroscope_x(imu1hdl), gyroscope_y(imu1hdl), gyroscope_z(imu1hdl)};
-            // int f_arr[] = {force_sensor_top_left, force_sensor_bottom_left, force_sensor_bottom_right, force_sensor_top_right};
+            /*
+            int16_t imu_arr[] = {accelerometer_x(imu0hdl), accelerometer_y(imu0hdl), accelerometer_z(imu0hdl),
+            gyroscope_x(imu0hdl), gyroscope_y(imu0hdl), gyroscope_z(imu0hdl),
+            accelerometer_x(imu1hdl), accelerometer_y(imu1hdl), accelerometer_z(imu1hdl),
+            gyroscope_x(imu1hdl), gyroscope_y(imu1hdl), gyroscope_z(imu1hdl)};
+            int16_t f_arr[] = {force_sensor_top_left, force_sensor_bottom_left, force_sensor_bottom_right, force_sensor_top_right};
 
-            // fwrite(imu_arr, 4, sizeof(imu_arr), stdout);
-            // fwrite(f_arr, 4, sizeof(f_arr), stdout);
-
-            printf("%d,", gpio_get_level(GPIO_EXT_BTN));
+            fwrite(imu_arr, sizeof(int16_t), 12, stdout);
+            fwrite(f_arr, sizeof(int16_t), 4, stdout);
+            fwrite("\n", sizeof(char), 1, stdout);
+            */
+            
+            //printf("%d,", gpio_get_level(GPIO_EXT_BTN));
             printf("%d,%d,%d,%d,", force_sensor_top_left, force_sensor_bottom_left, force_sensor_bottom_right, force_sensor_top_right);
-            printf("%0.8f,%0.8f,%0.8f,", accelerometer_x(imu0hdl), accelerometer_y(imu0hdl), accelerometer_z(imu0hdl));
-            printf("%0.8f,%0.8f,%0.8f,", gyroscope_x(imu0hdl), gyroscope_y(imu0hdl), gyroscope_z(imu0hdl));
-            printf("%0.8f,%0.8f,%0.8f,", accelerometer_x(imu1hdl), accelerometer_y(imu1hdl), accelerometer_z(imu1hdl));
-            printf("%0.8f,%0.8f,%0.8f,", gyroscope_x(imu1hdl), gyroscope_y(imu1hdl), gyroscope_z(imu1hdl));
+            printf("%d,%d,%d,", accelerometer_x(imu0hdl), accelerometer_y(imu0hdl), accelerometer_z(imu0hdl));
+            printf("%d,%d,%d,", gyroscope_x(imu0hdl), gyroscope_y(imu0hdl), gyroscope_z(imu0hdl));
+            printf("%d,%d,%d,", accelerometer_x(imu1hdl), accelerometer_y(imu1hdl), accelerometer_z(imu1hdl));
+            printf("%d,%d,%d", gyroscope_x(imu1hdl), gyroscope_y(imu1hdl), gyroscope_z(imu1hdl));
             printf("\n");
+            
         }
     }
 }
@@ -137,8 +141,8 @@ void app_main(void)
 
 
     // 1kHz=6, 100Hz=8, 6 is too fast for 5mbaud
-    int acc_odr = 7;
-    int gyr_odr = 7;
+    int acc_odr = 6;
+    int gyr_odr = 6;
 
     esp_err_t ret;
     uint8_t buffer[4];

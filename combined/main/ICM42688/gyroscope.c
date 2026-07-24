@@ -148,7 +148,7 @@ float gyroscope_set_odr(ICM42688 *imuhdl, uint8_t value)
     return convert_odr(imuhdl->gyro_odr);
 }
 
-float gyroscope_x(ICM42688 *imuhdl)
+int16_t gyroscope_x(ICM42688 *imuhdl)
 {
     uint8_t buffer[2];
 
@@ -156,10 +156,10 @@ float gyroscope_x(ICM42688 *imuhdl)
     ret = icm42688_read_register(imuhdl->devhdl, GYRO_DATA_X, buffer, 2);
     ESP_ERROR_CHECK(ret);
 
-    return convert_gyro(imuhdl, buffer[0], buffer[1]);
+    return (int16_t)((uint16_t) buffer[0] << 8 | buffer[1]);
 }
 
-float gyroscope_y(ICM42688 *imuhdl)
+int16_t gyroscope_y(ICM42688 *imuhdl)
 {
     uint8_t buffer[2];
 
@@ -167,10 +167,10 @@ float gyroscope_y(ICM42688 *imuhdl)
     ret = icm42688_read_register(imuhdl->devhdl, GYRO_DATA_Y, buffer, 2);
     ESP_ERROR_CHECK(ret);
 
-    return convert_gyro(imuhdl, buffer[0], buffer[1]);
+    return (uint16_t)((uint16_t) buffer[0] << 8 | buffer[1]);
 }
 
-float gyroscope_z(ICM42688 *imuhdl)
+int16_t gyroscope_z(ICM42688 *imuhdl)
 {
     uint8_t buffer[2];
 
@@ -178,5 +178,5 @@ float gyroscope_z(ICM42688 *imuhdl)
     ret = icm42688_read_register(imuhdl->devhdl, GYRO_DATA_Z, buffer, 2);
     ESP_ERROR_CHECK(ret);
 
-    return convert_gyro(imuhdl, buffer[0], buffer[1]);
+    return (int16_t)((uint16_t) buffer[0] << 8 | buffer[1]);
 }

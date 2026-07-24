@@ -146,7 +146,7 @@ float accelerometer_set_odr(ICM42688 *imuhdl, uint8_t value)
     return convert_odr(imuhdl->accel_odr);
 }
 
-float accelerometer_x(ICM42688 *imuhdl)
+int16_t accelerometer_x(ICM42688 *imuhdl)
 {
     uint8_t buffer[2];
 
@@ -154,10 +154,10 @@ float accelerometer_x(ICM42688 *imuhdl)
     ret = icm42688_read_register(imuhdl->devhdl, ACCEL_DATA_X, buffer, 2);
     ESP_ERROR_CHECK(ret);
 
-    return convert_accel(imuhdl, buffer[0], buffer[1]);
+    return (int16_t)((uint16_t) buffer[0] << 8 | buffer[1]);
 }
 
-float accelerometer_y(ICM42688 *imuhdl)
+int16_t accelerometer_y(ICM42688 *imuhdl)
 {
     uint8_t buffer[2];
 
@@ -165,10 +165,10 @@ float accelerometer_y(ICM42688 *imuhdl)
     ret = icm42688_read_register(imuhdl->devhdl, ACCEL_DATA_Y, buffer, 2);
     ESP_ERROR_CHECK(ret);
 
-    return convert_accel(imuhdl, buffer[0], buffer[1]);
+    return (int16_t)((uint16_t) buffer[0] << 8 | buffer[1]);
 }
 
-float accelerometer_z(ICM42688 *imuhdl)
+int16_t accelerometer_z(ICM42688 *imuhdl)
 {
     uint8_t buffer[2];
 
@@ -176,5 +176,5 @@ float accelerometer_z(ICM42688 *imuhdl)
     ret = icm42688_read_register(imuhdl->devhdl, ACCEL_DATA_Z, buffer, 2);
     ESP_ERROR_CHECK(ret);
 
-    return convert_accel(imuhdl, buffer[0], buffer[1]);
+    return (int16_t)((uint16_t) buffer[0] << 8 | buffer[1]);
 }
