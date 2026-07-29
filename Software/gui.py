@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 import pyqtgraph.opengl as gl
-from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtCore import QSize, Qt, QTimer
 from PyQt6.QtWidgets import QApplication, QGridLayout, QHBoxLayout, QMainWindow, QPushButton, QWidget, QVBoxLayout, QGroupBox, QFormLayout, QLabel
 from PyQt6.QtGui import QFont
 
@@ -14,6 +14,13 @@ buttonFont.setPointSize(14)
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.latest_position = np.zeros(3)
+        self.latest_angles = np.zeros(3)
+        self.latest_force = 0.0
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_sensor_display)
+        self.timer.start(100)
 
         self.setWindowTitle("Acculux")
 
@@ -28,6 +35,27 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
+    def update_sensor_display(self):
+        roll, pitch, yaw = self.latest_angles
+        x, y, z = self.latest_position
+        force = self.latest_force
+
+        self.bottom.sensorPanel.update_angles(
+            roll,
+            pitch,
+            yaw
+        )
+
+        self.bottom.sensorPanel.update_position(
+            x,
+            y,
+            z
+        )
+
+        self.bottom.sensorPanel.update_force(
+            force
+        )
 
 class bottomWindow(QWidget):
     def __init__(self):
@@ -241,6 +269,14 @@ class SensorPanel(QGroupBox):
         self.rollLabel.setText(f"{roll:.2f}°")
         self.pitchLabel.setText(f"{pitch:.2f}°")
         self.yawLabel.setText(f"{yaw:.2f}°")
+
+    def update_position(self, x, y, z):
+        self.XLabel.setText(f"{x:.3f}")
+        self.YLabel.setText(f"{y:.3f}")
+        self.ZLabel.setText(f"{z:.3f}")
+
+    def update_force(self, force):
+        self.ForceLabel.setText(f"{force:.2f} N")
 
 # # You need one (and only one) QApplication instance per application.
 # # Pass in sys.argv to allow command line arguments for your app.

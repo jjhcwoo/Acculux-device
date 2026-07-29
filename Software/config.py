@@ -1,14 +1,14 @@
 import numpy as np
 
-GRAVITY = np.array([0.0, 0.0, 9.81])
+GRAVITY = np.array([0.0, 0.0, -9.81])
 
-ACCEL_NOISE = ...
+ACCEL_NOISE = 0.01
 
-GYRO_NOISE = ...
+GYRO_NOISE = np.deg2rad(0.2)
 
-ACCEL_BIAS_NOISE = ...
+ACCEL_BIAS_NOISE = 0.001
 
-GYRO_BIAS_NOISE = ...
+GYRO_BIAS_NOISE = np.deg2rad(0.01)
 
 IMU_OFFSET_TOP = ...
 
@@ -20,7 +20,7 @@ SAMPLE_PERIOD = 1 / SAMPLE_RATE
 
 SCAN_TIME = 5.0
 
-PORT = 'COM4'
+PORT = 'COM6'
 
 BAUD = 115200
 

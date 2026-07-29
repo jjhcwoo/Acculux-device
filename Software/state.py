@@ -32,8 +32,13 @@ class ProbeState:
         # Call when a new scan begins
         # (i.e., probe placed on the nipple)
 
+        # CHANGE BASED ON RADIUS
         # Position (m)
-        self.position = np.zeros(3)
+        self.position = np.array([
+            0.0,
+            0.0,
+            0.15
+        ])
 
         # Velocity (m/s)
         self.velocity = np.zeros(3)

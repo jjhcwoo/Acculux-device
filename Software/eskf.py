@@ -19,6 +19,16 @@ from state import ProbeState
 from quaternion import Quaternion
 import config
 
+def skew(v):
+
+    x,y,z = v
+
+    return np.array([
+        [0,-z,y],
+        [z,0,-x],
+        [-y,x,0]
+    ])
+
 
 class ESKF:
 
@@ -52,6 +62,17 @@ class ESKF:
         self.state.reset()
 
         self.P = np.eye(15)
+        # Position uncertainty
+        self.P[0:3,0:3] *= 0.001
+
+        # Velocity uncertainty
+        self.P[3:6,3:6] *= 0.1
+
+        # Orientation uncertainty
+        self.P[6:9,6:9] *= 0.01
+
+        # Bias uncertainty
+        self.P[9:15,9:15] *= 0.001
 
 
     def predict(self, accel, gyro, dt):
@@ -135,21 +156,126 @@ class ESKF:
         # Q = Process noise matrix
         #
 
-        pass
+        F = np.eye(15)
+
+        R = self.state.get_rotation_matrix()
 
 
-    def update(self, measurement):
-        # Measurement update.
+        # velocity depends on attitude error
+        F[3:6,6:9] = (
+            -R @ skew(accel)
+        ) * dt
 
-        # Future implementation:
 
-        # 1. Compute innovation
-        # 2. Calculate Kalman gain
-        # 3. Estimate error state
-        # 4. Inject correction
+        # velocity depends on accel bias
+        F[3:6,9:12] = (
+            -R
+        ) * dt
 
-        pass
 
+        # attitude depends on gyro bias
+        F[6:9,12:15] = (
+            -np.eye(3)
+        ) * dt
+
+
+        # position depends on velocity
+        F[0:3,3:6] = (
+            np.eye(3)
+        ) * dt
+
+
+
+        Q = np.zeros((15,15))
+
+
+        Q[3:6,3:6] = (
+            config.ACCEL_NOISE**2 *
+            np.eye(3)
+        )
+
+        Q[6:9,6:9] = (
+            config.GYRO_NOISE**2 *
+            np.eye(3)
+        )
+
+        Q[9:12,9:12] = (
+            config.ACCEL_BIAS_NOISE**2 *
+            np.eye(3)
+        )
+
+        Q[12:15,12:15] = (
+            config.GYRO_BIAS_NOISE**2 *
+            np.eye(3)
+        )
+
+
+        self.P = (
+            F @ self.P @ F.T
+            +
+            Q * dt
+        )
+
+
+    def update(self, innovation, H, R):
+        # Generic ESKF measurement update.
+
+        # Innovation covariance
+        S = H @ self.P @ H.T + R
+
+        # Kalman gain
+        K = self.P @ H.T @ np.linalg.inv(S)
+
+        # Estimated error state
+        dx = K @ innovation
+
+        # Correct nominal state
+        self.inject_error(dx)
+
+        # Covariance update (Joseph form)
+        I = np.eye(15)
+
+        self.P = (
+            (I - K @ H)
+            @ self.P
+            @ (I - K @ H).T
+            +
+            K @ R @ K.T
+        )
+
+    def update_hemisphere(self, radius):
+
+        p = self.state.position
+
+        distance = np.linalg.norm(p)
+
+        if distance < 1e-8:
+            return
+
+        innovation = np.array([
+            radius - distance
+        ])
+
+        H = np.zeros((1,15))
+        H[0,0:3] = p / distance
+
+        R = np.array([[0.001]])
+
+        self.update(
+            innovation,
+            H,
+            R
+        )
+
+    def constrain_velocity(self):
+
+        p=self.state.position
+
+        n=p/np.linalg.norm(p)
+
+        self.state.velocity -= (
+            np.dot(self.state.velocity,n)*n
+        )
 
     def inject_error(self, dx):
         # Inject estimated error state.
