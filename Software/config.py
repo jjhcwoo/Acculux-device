@@ -1,18 +1,20 @@
 import numpy as np
 
-GRAVITY = np.array([0.0, 0.0, -9.81])
+GRAVITY = np.array([0.0, 0.0, 9.80655])
 
-ACCEL_NOISE = 0.01
+ACCEL_NOISE = 0.0070 * 9.80655
 
-GYRO_NOISE = np.deg2rad(0.2)
+GYRO_NOISE = np.deg2rad(0.0028)
 
 ACCEL_BIAS_NOISE = 0.001
 
 GYRO_BIAS_NOISE = np.deg2rad(0.01)
 
-IMU_OFFSET_TOP = ...
+IMU_OFFSET_TOP = 0.035922
 
-IMU_OFFSET_BOTTOM = ...
+IMU_OFFSET_BOTTOM = -0.035922
+
+PCB_OFFSET = 0.1425
 
 SAMPLE_RATE = 1000
 

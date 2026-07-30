@@ -166,3 +166,21 @@ class Quaternion:
             cr*sp*cy + sr*cp*sy,
             cr*cp*sy - sr*sp*cy
         ])
+
+    @staticmethod
+    def skew(v):
+            x, y, z = v
+            return np.array(
+                [[0, -z, y],
+                [z, 0, -x],
+                [-y, x, 0]]
+            )
+
+    @staticmethod
+    def from_vector_to_rotation(v):
+        phi = np.linalg.norm(v)
+        if phi < 1e-9:
+            return np.eye(3)
+        u = np.array(v / phi)
+        K = Quaternion.skew(u)
+        return np.eye(3) + np.sin(phi) * K + (1 - np.cos(phi)) * K @ K

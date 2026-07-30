@@ -19,17 +19,6 @@ from state import ProbeState
 from quaternion import Quaternion
 import config
 
-def skew(v):
-
-    x,y,z = v
-
-    return np.array([
-        [0,-z,y],
-        [z,0,-x],
-        [-y,x,0]
-    ])
-
-
 class ESKF:
 
     def __init__(self):
@@ -106,9 +95,7 @@ class ESKF:
 
         # 4. Remove gravity
 
-        #accel_world -= config.GRAVITY
-
-        specific_force = accel_world - config.GRAVITY
+        specific_force = accel_world + config.GRAVITY
         self.specific_force_samples.append(
             specific_force.copy()
         )
@@ -156,66 +143,22 @@ class ESKF:
         # Q = Process noise matrix
         #
 
-        F = np.eye(15)
-
         R = self.state.get_rotation_matrix()
+        I = np.eye(3)
+        F = np.eye(15)
+        F[0:3, 3:6] = I * dt
+        F[3:6, 6:9] = (-R @ Quaternion.skew(accel)) * dt
+        F[3:6, 9:12] = -R * dt
+        F[6:9, 6:9] = np.transpose(Quaternion.from_vector_to_rotation(gyro * dt))
+        F[6:9, 12:15] = -I * dt
 
-
-        # velocity depends on attitude error
-        F[3:6,6:9] = (
-            -R @ skew(accel)
-        ) * dt
-
-
-        # velocity depends on accel bias
-        F[3:6,9:12] = (
-            -R
-        ) * dt
-
-
-        # attitude depends on gyro bias
-        F[6:9,12:15] = (
-            -np.eye(3)
-        ) * dt
-
-
-        # position depends on velocity
-        F[0:3,3:6] = (
-            np.eye(3)
-        ) * dt
-
-
-
-        Q = np.zeros((15,15))
-
-
-        Q[3:6,3:6] = (
-            config.ACCEL_NOISE**2 *
-            np.eye(3)
-        )
-
-        Q[6:9,6:9] = (
-            config.GYRO_NOISE**2 *
-            np.eye(3)
-        )
-
-        Q[9:12,9:12] = (
-            config.ACCEL_BIAS_NOISE**2 *
-            np.eye(3)
-        )
-
-        Q[12:15,12:15] = (
-            config.GYRO_BIAS_NOISE**2 *
-            np.eye(3)
-        )
-
-
-        self.P = (
-            F @ self.P @ F.T
-            +
-            Q * dt
-        )
-
+        Q = np.zeros((15, 15))
+        Q[3:6, 3:6] = config.ACCEL_NOISE * config.ACCEL_NOISE * dt * dt * np.eye(3)
+        Q[6:9, 6:9] = config.GYRO_NOISE * config.GYRO_NOISE * dt * dt * np.eye(3)
+        Q[9:12, 9:12] = config.ACCEL_BIAS_NOISE * config.ACCEL_BIAS_NOISE * dt * np.eye(3)
+        Q[12:15, 12:15] = config.GYRO_BIAS_NOISE * config.GYRO_BIAS_NOISE * dt * np.eye(3)
+        
+        self.P = F @ self.P @ np.transpose(F) + Q
 
     def update(self, innovation, H, R):
         # Generic ESKF measurement update.
@@ -273,9 +216,7 @@ class ESKF:
 
         n=p/np.linalg.norm(p)
 
-        self.state.velocity -= (
-            np.dot(self.state.velocity,n)*n
-        )
+        self.state.velocity -= (np.dot(self.state.velocity,n)*n)
 
     def inject_error(self, dx):
         # Inject estimated error state.

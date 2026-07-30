@@ -4,6 +4,9 @@ from config import PORT, BAUD, ACC_FS, GYRO_FS, GRAVITY, SAMPLE_PERIOD
 import time
 from eskf import ESKF
 from quaternion import Quaternion
+from PyQt6.QtCore import QObject, pyqtSignal
+from force import Force
+from hardware import find_probe_port
 
 import numpy as np
 
@@ -44,51 +47,90 @@ def quaternion_to_euler(q):
         yaw
     ])
 
-class Serial_Parser:
+class Serial_Parser(QObject):
+    status_signal = pyqtSignal(str)
+    connection_signal = pyqtSignal(bool)
 
     def __init__(self, filter, window):
-        serial_port = serial.Serial(PORT, BAUD, timeout = None)
+        super().__init__()
+        port = find_probe_port()
+        self.serial_port = serial.Serial(port, BAUD, timeout = None)
+        self.connection_signal.emit(True)
         self.window = window
+        self.filter = filter
+        window.filter = filter
+        self.calibration_requested = False
+        self.force = Force()
 
         # dirty way of flushing the serial port
         for i in range(0, 100):
-            s = serial_port.readline()
+            s = self.serial_port.readline()
+        thread = threading.Thread(target=self.read_from_port, args=(window,), daemon=True)
+        thread.start()
 
-        # calibration
+    def request_calibration(self):
+        self.calibration_requested = True
+
+    # calibration
+    def calibrate(self):
+
+        self.status_signal.emit("Calibration started. Pleast place the probe on a flat surface.")
+        print("Calibrate button pressed")
+    
+        samples = []
+        forceTotal = []
+        for i in range(0, 1000):
+            s = np.array(self.serial_port.readline().decode().strip('\r\n').split(','), dtype=float)
+            samples.append(s[0:4])
+
+        samples = np.array(samples)
+
+        self.force.capture_zero(samples)
+        time.sleep(3)
+
+        samples2 = []
         calibration_values = []
         for i in range(0, 1000):
-            s = np.array(serial_port.readline().decode().strip('\r\n').split(','), dtype=float)
+            s = np.array(self.serial_port.readline().decode().strip('\r\n').split(','), dtype=float)
+            samples2.append(s[0:4])
             s[4:7] = s[4:7] * ACC_FS / 32768
             s[7:10] = s[7:10] * GYRO_FS / 32768
             s[10:13] = s[10:13] * ACC_FS / 32768
             s[13:16] = s[13:16] * GYRO_FS / 32768
             calibration_values.append(s[4:16])
 
+        samples2 = np.array(samples2)
+        self.force.calculate(samples2, known_force = 1.102)
 
         bias_values = np.mean(calibration_values, axis=0)
         bias_values[0:3] = bias_values[0:3] + GRAVITY
         bias_values[6:9] = bias_values[6:9] + GRAVITY
 
-        filter.state.set_accel_bias(bias_values[0:3])
-        filter.state.set_gyro_bias(bias_values[3:6])
+        print("Calibration complete. Bias values:")
+        print(bias_values)
+
+        self.filter.state.set_accel_bias(bias_values[0:3])
+        self.filter.state.set_gyro_bias(bias_values[3:6])
 
         # safe to assume that probe is on a flat surface
-
         q0 = Quaternion.from_accel([0, 0, -9.81])
-        filter.state.set_quaternion(q0)
+        self.filter.state.set_quaternion(q0)
+        self.status_signal.emit("Calibration complete")
 
-        print(quaternion_to_euler(filter.state.quaternion))
+        # print(quaternion_to_euler(self.filter.state.quaternion))
 
-        thread = threading.Thread(target=self.read_from_port, args=(serial_port, filter, window), daemon=True)
-        thread.start()
-
-    def read_from_port(self, serial_port, filter, window):
+    def read_from_port(self, window):
 
         last_print = time.time()
         while True:
+            if self.calibration_requested:
+                self.calibrate()
+                self.calibration_requested = False
+                continue
+
             try:
                 # Read one complete serial line
-                line = serial_port.readline().decode(errors="ignore").strip()
+                line = self.serial_port.readline().decode(errors="ignore").strip()
 
                 # Ignore blank lines
                 if not line:
@@ -104,31 +146,40 @@ class Serial_Parser:
 
                 # Convert to numpy array
                 s = np.array(values, dtype=float)
-
+                raw_force = s[0:4]
                 s[4:7] = s[4:7] * ACC_FS / 32768
                 s[7:10] = s[7:10] * GYRO_FS / 32768
                 s[10:13] = s[10:13] * ACC_FS / 32768
                 s[13:16] = s[13:16] * GYRO_FS / 32768
-                filter.predict(s[4:7], s[7:10], SAMPLE_PERIOD)
+           
+                if window.reset_request:
+                    self.filter.reset()
+                    window.reset_request = False
 
-                filter.update_hemisphere(
-                    radius = 0.15  # example radius in metres
-                )
-                filter.constrain_velocity()
-                print(
-                    filter.specific_force_samples[-1]
-                )
+                if window.scanning:
+                    self.filter.predict(s[4:7], s[7:10], SAMPLE_PERIOD)
+
+                    self.filter.update_hemisphere(radius = 0.15)
+                    self.filter.constrain_velocity()
+                    window.latest_force = self.force.convert(raw_force)
+
+                # if time.time() - last_print > 1.0:
+                #     print("Position:", state.position)
+                #     print("Quaternion:", state.quaternion)
+                #     print("Euler:", quaternion_to_euler(state.quaternion))
+                #     print()
+                #     last_print = time.time()
+
+
+
+                state = self.filter.get_state()
 
                 if time.time() - last_print > 1.0:
                     print("Position:", state.position)
-                    print("Quaternion:", state.quaternion)
-                    print("Euler:", quaternion_to_euler(state.quaternion))
+                    print("Velocity:", state.velocity)
+                    print("Speed:", np.linalg.norm(state.velocity))
                     print()
                     last_print = time.time()
-
-
-
-                state = filter.get_state()
                 
                 roll, pitch, yaw = quaternion_to_euler(
                     state.quaternion
@@ -149,7 +200,7 @@ class Serial_Parser:
 
             # Bandaid fix, will have to use GUI signals in PyQt
             except RuntimeError:
-                print("GUI closed")
+                self.connection_signal.emit(False)
                 break
 
             except ValueError as e:
@@ -160,6 +211,17 @@ class Serial_Parser:
                 print("Serial decode error:", e)
                 continue
 
-            except Exception as e:
-                print("Unexpected serial parser error:", e)
-                continue
+            except serial.SerialException:
+                self.connection_signal.emit(False)
+                while True:
+                    try:
+                        time.sleep(1)
+                        
+                        port = find_probe_port()
+                        self.serial_port = serial.Serial(port, BAUD, timeout=None)
+
+                        self.connection_signal.emit(True)
+                        break
+
+                    except serial.SerialException:
+                        continue

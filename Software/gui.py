@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import pyqtgraph.opengl as gl
 from PyQt6.QtCore import QSize, Qt, QTimer
-from PyQt6.QtWidgets import QApplication, QGridLayout, QHBoxLayout, QMainWindow, QPushButton, QWidget, QVBoxLayout, QGroupBox, QFormLayout, QLabel
+from PyQt6.QtWidgets import QApplication, QGridLayout, QHBoxLayout, QMainWindow, QPushButton, QWidget, QVBoxLayout, QGroupBox, QFormLayout, QLabel, QMessageBox
 from PyQt6.QtGui import QFont
 
 font = QFont()
@@ -17,6 +17,14 @@ class MainWindow(QMainWindow):
         self.latest_position = np.zeros(3)
         self.latest_angles = np.zeros(3)
         self.latest_force = 0.0
+        self.current_popup = None
+
+        self.scanning = False
+        self.reset_request = False
+
+        self.scan_timer = QTimer(self)
+        self.scan_timer.setSingleShot(True)
+        self.scan_timer.timeout.connect(self.stop_scan)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_sensor_display)
@@ -30,6 +38,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.plot3D, stretch=50)
 
         self.bottom = bottomWindow()
+        self.bottom.scanButton.clicked.connect(self.start_scan)
         layout.addWidget(self.bottom)
 
         widget = QWidget()
@@ -57,6 +66,48 @@ class MainWindow(QMainWindow):
             force
         )
 
+    def update_connection_status(self, connected):
+        if connected:
+            self.bottom.statusLight.setStyleSheet(
+                "background-color: green; border-radius: 15px; border: 2px solid black;"
+            )
+                    
+        else:
+            self.bottom.statusLight.setStyleSheet(
+                "background-color: red; border-radius: 15px; border: 2px solid black;"
+            )
+
+    def start_scan(self):
+
+        # Ignore if already scanning
+        if self.scanning:
+            return
+
+        print("Scan started")
+        self.reset_request = True
+        self.scanning = True
+
+        # Run for 5 seconds
+        self.scan_timer.start(5000)
+
+    def stop_scan(self):
+
+        print("Scan finished")
+
+        self.scanning = False
+
+    def show_status_popup(self, message):
+        # Close existing popup
+        if self.current_popup is not None:
+            self.current_popup.close()
+            self.current_popup = None
+        popup = QMessageBox(self)
+        popup.setWindowTitle("Status")
+        popup.setText(message)
+        popup.setIcon(QMessageBox.Icon.Information)
+        popup.show()
+        self.current_popup = popup
+
 class bottomWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -66,7 +117,7 @@ class bottomWindow(QWidget):
         self.statusLight = QLabel()
         self.statusLight.setFixedSize(30, 30)
         self.statusLight.setStyleSheet("""
-        background-color: green;
+        background-color: red;
         border-radius: 15px;
         border: 2px solid black;
     """)
@@ -274,26 +325,10 @@ class SensorPanel(QGroupBox):
         self.XLabel.setText(f"{x:.3f}")
         self.YLabel.setText(f"{y:.3f}")
         self.ZLabel.setText(f"{z:.3f}")
+        # print(f"Updated position: X={x:.3f}, Y={y:.3f}, Z={z:.3f}")
 
     def update_force(self, force):
         self.ForceLabel.setText(f"{force:.2f} N")
-
-# # You need one (and only one) QApplication instance per application.
-# # Pass in sys.argv to allow command line arguments for your app.
-# # If you know you won't use command line arguments QApplication([]) works too.
-# app = QApplication(sys.argv)
-
-# # Create a Qt widget, which will be our window.
-# window = MainWindow()
-# window.resize(1200, 800)
-# window.showMaximized()  # IMPORTANT!!!!! Windows are hidden by default.
-
-# # Start the event loop.
-# app.exec()
-
-
-# # Your application won't reach here until you exit and the event
-# # loop has stopped.
 
 def create_gui():
 

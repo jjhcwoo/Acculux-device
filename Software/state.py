@@ -25,6 +25,11 @@ class ProbeState:
     def __init__(self):
 
         self.reset()
+        # Estimated accelerometer bias (m/s²)
+        self.accel_bias = np.zeros(3)
+        
+        # Estimated gyroscope bias (rad/s)
+        self.gyro_bias = np.zeros(3)
 
     def reset(self):
         # Reset the probe to its initial state
@@ -51,11 +56,11 @@ class ProbeState:
             0.0
         ])
 
-        # Estimated accelerometer bias (m/s²)
-        self.accel_bias = np.zeros(3)
+        # # Estimated accelerometer bias (m/s²)
+        # self.accel_bias = np.zeros(3)
 
-        # Estimated gyroscope bias (rad/s)
-        self.gyro_bias = np.zeros(3)
+        # # Estimated gyroscope bias (rad/s)
+        # self.gyro_bias = np.zeros(3)
 
     def get_rotation_matrix(self):
         # Returns the current body-to-world rotation matrix
