@@ -5,6 +5,9 @@ from PyQt6.QtCore import QSize, Qt, QTimer
 from PyQt6.QtWidgets import QApplication, QGridLayout, QHBoxLayout, QMainWindow, QPushButton, QWidget, QVBoxLayout, QGroupBox, QFormLayout, QLabel, QMessageBox
 from PyQt6.QtGui import QFont
 
+import breast
+import config
+
 font = QFont()
 font.setPointSize(12)
 buttonFont = QFont()
@@ -197,35 +200,7 @@ class PyQtGraph3DWindow(QWidget):
         grid.setSpacing(1, 1, 1)
         self.view.addItem(grid)
 
-        # Add reference semi-circle
-        radius = 3
-        n_theta = 20      # Around z-axis
-        n_phi = 12        # From top to equator
-        theta = np.linspace(0, 2*np.pi, n_theta)
-        phi = np.linspace(0, np.pi/2, n_phi)   # Only upper half
-        theta, phi = np.meshgrid(theta, phi)
-
-        # Cartesian coordinates
-        x = radius * np.sin(phi) * np.cos(theta)
-        y = radius * np.sin(phi) * np.sin(theta)
-        z = radius * np.cos(phi)
-
-        # Convert grid to vertices
-        verts = np.vstack([x.ravel(), y.ravel(), z.ravel()]).T
-
-        # Build triangular faces
-        faces = []
-        for i in range(n_phi - 1):
-            for j in range(n_theta - 1):
-                a = i * n_theta + j
-                b = a + 1
-                c = a + n_theta
-                d = c + 1
-
-                faces.append([a, c, b])
-                faces.append([b, c, d])
-
-        faces = np.array(faces)
+        verts, faces = breast.get_mesh()
 
         mesh = gl.MeshData(vertexes=verts, faces=faces)
 
@@ -241,13 +216,11 @@ class PyQtGraph3DWindow(QWidget):
         self.view.addItem(item)
 
         self.sensor_point = gl.GLScatterPlotItem(
-            pos=np.array([[0, 0, radius]]),   # Initial position
+            pos=np.array([[config.IMU0_OFFSET, 0, config.BREAST_C + config.PCB_OFFSET]]),   # Initial position
             color=(0.5, 0, 0, 1),          # Red
             size=20
         )
         self.view.addItem(self.sensor_point)
-
-        self.radius = radius
 
     def update_orientation(self, roll, pitch):
         """
@@ -276,7 +249,14 @@ class PyQtGraph3DWindow(QWidget):
             pos=np.array([[x, y, z]])
         )
 
+    def update_position(self, p):
+        """
+        Update probe position using vector p
 
+        """
+        self.sensor_point.setData(
+            pos = np.array([p])
+        )
 
 class SensorPanel(QGroupBox):
     def __init__(self):

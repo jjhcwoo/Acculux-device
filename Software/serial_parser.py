@@ -8,6 +8,9 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from force import Force
 from hardware import find_probe_port
 
+import breast
+import config
+
 import numpy as np
 
 import state
@@ -80,8 +83,35 @@ class Serial_Parser(QObject):
         samples = []
         forceTotal = []
         for i in range(0, 1000):
-            s = np.array(self.serial_port.readline().decode().strip('\r\n').split(','), dtype=float)
-            samples.append(s[0:4])
+            try:
+                s = np.array(self.serial_port.readline().decode().strip('\r\n').split(','), dtype=float)
+                samples.append(s[0:4])
+            except RuntimeError:
+                self.connection_signal.emit(False)
+                break
+
+            except ValueError as e:
+                print("Invalid serial packet:", e)
+                continue
+
+            except UnicodeDecodeError as e:
+                print("Serial decode error:", e)
+                continue
+
+            except serial.SerialException:
+                self.connection_signal.emit(False)
+                while True:
+                    try:
+                        time.sleep(1)
+                        
+                        port = find_probe_port()
+                        self.serial_port = serial.Serial(port, BAUD, timeout=None)
+
+                        self.connection_signal.emit(True)
+                        break
+
+                    except serial.SerialException:
+                        continue
 
         samples = np.array(samples)
 
@@ -91,13 +121,41 @@ class Serial_Parser(QObject):
         samples2 = []
         calibration_values = []
         for i in range(0, 1000):
-            s = np.array(self.serial_port.readline().decode().strip('\r\n').split(','), dtype=float)
-            samples2.append(s[0:4])
-            s[4:7] = s[4:7] * ACC_FS / 32768
-            s[7:10] = s[7:10] * GYRO_FS / 32768
-            s[10:13] = s[10:13] * ACC_FS / 32768
-            s[13:16] = s[13:16] * GYRO_FS / 32768
-            calibration_values.append(s[4:16])
+            try:
+                s = np.array(self.serial_port.readline().decode().strip('\r\n').split(','), dtype=float)
+                samples2.append(s[0:4])
+                s[4:7] = s[4:7] * ACC_FS / 32768
+                s[7:10] = s[7:10] * GYRO_FS / 32768
+                s[10:13] = s[10:13] * ACC_FS / 32768
+                s[13:16] = s[13:16] * GYRO_FS / 32768
+                calibration_values.append(s[4:16])
+                # Bandaid fix, will have to use GUI signals in PyQt
+            except RuntimeError:
+                self.connection_signal.emit(False)
+                break
+
+            except ValueError as e:
+                print("Invalid serial packet:", e)
+                continue
+
+            except UnicodeDecodeError as e:
+                print("Serial decode error:", e)
+                continue
+
+            except serial.SerialException:
+                self.connection_signal.emit(False)
+                while True:
+                    try:
+                        time.sleep(1)
+                        
+                        port = find_probe_port()
+                        self.serial_port = serial.Serial(port, BAUD, timeout=None)
+
+                        self.connection_signal.emit(True)
+                        break
+
+                    except serial.SerialException:
+                        continue
 
         samples2 = np.array(samples2)
         self.force.calculate(samples2, known_force = 1.102)
@@ -111,10 +169,12 @@ class Serial_Parser(QObject):
 
         self.filter.state.set_accel_bias(bias_values[0:3])
         self.filter.state.set_gyro_bias(bias_values[3:6])
+        self.filter.state.set_calibrated_accel_bias(bias_values[0:3])
+        self.filter.state.set_calibrated_gyro_bias(bias_values[3:6])
 
         # safe to assume that probe is on a flat surface
-        q0 = Quaternion.from_accel([0, 0, -9.81])
-        self.filter.state.set_quaternion(q0)
+        #q0 = Quaternion.from_accel([0, 0, -9.80655])
+        self.filter.state.set_quaternion([1, 0, 0, 0])
         self.status_signal.emit("Calibration complete")
 
         # print(quaternion_to_euler(self.filter.state.quaternion))
@@ -158,8 +218,8 @@ class Serial_Parser(QObject):
 
                 if window.scanning:
                     self.filter.predict(s[4:7], s[7:10], SAMPLE_PERIOD)
-
-                    self.filter.update_hemisphere(radius = 0.15)
+                    position = breast.get_projection(self.filter.state.quaternion, config.IMU0_OFFSET)
+                    self.filter.orientation_update(position)
                     self.filter.constrain_velocity()
                     window.latest_force = self.force.convert(raw_force)
 
@@ -193,10 +253,10 @@ class Serial_Parser(QObject):
 
                 window.latest_position = state.position.copy()
                 
-                window.plot3D.update_orientation(
-                    roll,
-                    pitch
+                window.plot3D.update_position(
+                    state.position
                 )
+
 
             # Bandaid fix, will have to use GUI signals in PyQt
             except RuntimeError:
