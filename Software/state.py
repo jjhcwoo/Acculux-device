@@ -10,6 +10,7 @@
 import numpy as np
 
 from quaternion import Quaternion
+import config
 
 
 class ProbeState:
@@ -21,13 +22,19 @@ class ProbeState:
     # relative to the world frame.
 
     # Biases are estimated by the ESKF
+    position = np.zeros(3)
+    velocity = np.zeros(3)
+    quaternion = np.zeros(4)
+    accel_bias = np.zeros(3)
+    gyro_bias = np.zeros(3)
+    calibrated_accel_bias = np.zeros(3)
+    calibrated_gyro_bias = np.zeros(3)
 
     def __init__(self):
 
         self.reset()
         # Estimated accelerometer bias (m/s²)
         self.accel_bias = np.zeros(3)
-        
         # Estimated gyroscope bias (rad/s)
         self.gyro_bias = np.zeros(3)
 
@@ -37,12 +44,11 @@ class ProbeState:
         # Call when a new scan begins
         # (i.e., probe placed on the nipple)
 
-        # CHANGE BASED ON RADIUS
         # Position (m)
         self.position = np.array([
+            config.IMU0_OFFSET,
             0.0,
-            0.0,
-            0.15
+            config.BREAST_C + config.PCB_OFFSET
         ])
 
         # Velocity (m/s)
@@ -56,16 +62,14 @@ class ProbeState:
             0.0
         ])
 
-        # # Estimated accelerometer bias (m/s²)
-        # self.accel_bias = np.zeros(3)
+        # Estimated accelerometer bias (m/s²)
+        self.accel_bias = self.calibrated_accel_bias
 
-        # # Estimated gyroscope bias (rad/s)
-        # self.gyro_bias = np.zeros(3)
+        # Estimated gyroscope bias (rad/s)
+        self.gyro_bias = self.calibrated_gyro_bias
 
     def get_rotation_matrix(self):
         # Returns the current body-to-world rotation matrix
-
-
         return Quaternion.to_rotation_matrix(self.quaternion)
 
     def get_pose(self):
@@ -93,13 +97,17 @@ class ProbeState:
 
     def set_accel_bias(self, bias):
         # Update estimated accelerometer bias.
-
         self.accel_bias = np.asarray(bias, dtype=float)
 
     def set_gyro_bias(self, bias):
         # Update estimated gyroscope bias.
-        
         self.gyro_bias = np.asarray(bias, dtype=float)
+
+    def set_calibrated_accel_bias(self, bias):
+        self.calibrated_accel_bias = np.asarray(bias, dtype=float)
+
+    def set_calibrated_gyro_bias(self, bias):
+        self.calibrated_gyro_bias = np.asarray(bias, dtype=float)
 
     def print_state(self):
         # Print states

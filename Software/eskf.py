@@ -55,10 +55,10 @@ class ESKF:
         self.P[0:3,0:3] *= 0.001
 
         # Velocity uncertainty
-        self.P[3:6,3:6] *= 0.1
+        self.P[3:6,3:6] *= 0.001
 
         # Orientation uncertainty
-        self.P[6:9,6:9] *= 0.01
+        self.P[6:9,6:9] *= 0.001
 
         # Bias uncertainty
         self.P[9:15,9:15] *= 0.001
@@ -77,6 +77,8 @@ class ESKF:
             gyro -
             self.state.gyro_bias
         )
+
+        old_rotation = self.state.get_rotation_matrix()
 
         # 2. Update orientation
         self.state.quaternion = (
@@ -121,6 +123,7 @@ class ESKF:
         self.predict_covariance(
             accel_corrected,
             gyro_corrected,
+            old_rotation,
             dt
         )
 
@@ -128,6 +131,7 @@ class ESKF:
         self,
         accel,
         gyro,
+        rotation,
         dt
     ):
         # Propagate error covariance.
@@ -143,7 +147,7 @@ class ESKF:
         # Q = Process noise matrix
         #
 
-        R = self.state.get_rotation_matrix()
+        R = rotation
         I = np.eye(3)
         F = np.eye(15)
         F[0:3, 3:6] = I * dt
@@ -186,29 +190,17 @@ class ESKF:
             K @ R @ K.T
         )
 
-    def update_hemisphere(self, radius):
-
-        p = self.state.position
-
-        distance = np.linalg.norm(p)
-
-        if distance < 1e-8:
-            return
-
-        innovation = np.array([
-            radius - distance
-        ])
-
-        H = np.zeros((1,15))
-        H[0,0:3] = p / distance
-
-        R = np.array([[0.001]])
-
-        self.update(
-            innovation,
-            H,
-            R
-        )
+    def orientation_update(self, position):
+        # assume 0.1cm accuracy for prediction
+        V = np.diag([0.001 ** 2, 0.001 ** 2, 0.001 ** 2])
+        
+        H = np.zeros((3, 15))
+        H[0:3, 0:3] = np.eye(3)
+        K = self.P @ np.transpose(H) @ np.linalg.inv(H @ self.P @ np.transpose(H) + V)
+        dx = K @ (position - self.state.position)
+        self.inject_error(dx)
+        # poor stability reset
+        self.P = (np.eye(15) - K @ H) @ self.P
 
     def constrain_velocity(self):
 
