@@ -18,15 +18,17 @@ import numpy as np
 from state import ProbeState
 from quaternion import Quaternion
 import config
+import breast
 
 class ESKF:
 
-    def __init__(self):
+    counter = 0
+
+    def __init__(self, offset):
         # Initialize filter.
 
-
         # Nominal state
-        self.state = ProbeState()
+        self.state = ProbeState(offset)
 
         # Error covariance matrix
         # 15 error states:
@@ -38,6 +40,7 @@ class ESKF:
         # dbg (3)
         #
         self.P = np.eye(15)
+        self.offset = offset
 
         # Debug storage
         self.specific_force_samples = []
@@ -47,7 +50,7 @@ class ESKF:
         # Reset filter to initial probe position
 
         # Called when probe is placed at nipple
-
+        print(self.state.offset)
         self.state.reset()
 
         self.P = np.eye(15)
@@ -127,6 +130,12 @@ class ESKF:
             dt
         )
 
+        if self.counter >= 1:
+            position = breast.get_projection(self.state.quaternion, self.offset)
+            self.orientation_update(position)
+            self.counter = 0
+        self.counter += 1
+
     def predict_covariance(
         self,
         accel,
@@ -192,7 +201,7 @@ class ESKF:
 
     def orientation_update(self, position):
         # assume 0.1cm accuracy for prediction
-        V = np.diag([0.001 ** 2, 0.001 ** 2, 0.001 ** 2])
+        V = np.diag([0.01 ** 2, 0.01 ** 2, 0.01 ** 2])
         
         H = np.zeros((3, 15))
         H[0:3, 0:3] = np.eye(3)
@@ -203,12 +212,37 @@ class ESKF:
         self.P = (np.eye(15) - K @ H) @ self.P
 
     def constrain_velocity(self):
-
+        '''
         p=self.state.position
-
+        
         n=p/np.linalg.norm(p)
 
         self.state.velocity -= (np.dot(self.state.velocity,n)*n)
+        '''
+        p = self.state.position
+
+        a = config.BREAST_A / 2
+        b = config.BREAST_B / 2
+        c = config.BREAST_C
+
+        x, y, z = p
+
+        # Ellipsoid surface normal
+        n = np.array([
+        x / (a * a),
+        y / (b * b),
+        z / (c * c)
+        ])
+
+        norm = np.linalg.norm(n)
+
+        if norm < 1e-8:
+            return
+
+        n /= norm
+
+        # Remove normal velocity component
+        self.state.velocity -= np.dot(self.state.velocity, n) * n
 
     def inject_error(self, dx):
         # Inject estimated error state.
@@ -246,8 +280,8 @@ class ESKF:
 
 
         # Bias correction
-        self.state.accel_bias += dba
-        self.state.gyro_bias += dbg
+        #self.state.accel_bias += dba
+        #self.state.gyro_bias += dbg
 
 
     def get_state(self):

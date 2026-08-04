@@ -22,21 +22,22 @@ class ProbeState:
     # relative to the world frame.
 
     # Biases are estimated by the ESKF
+    
     position = np.zeros(3)
     velocity = np.zeros(3)
     quaternion = np.zeros(4)
+    # Estimated accelerometer bias (m/s²)
     accel_bias = np.zeros(3)
+    # Estimated gyroscope bias (rad/s)
     gyro_bias = np.zeros(3)
     calibrated_accel_bias = np.zeros(3)
     calibrated_gyro_bias = np.zeros(3)
+    offset = 0
 
-    def __init__(self):
+    def __init__(self, offset):
 
+        self.offset = offset
         self.reset()
-        # Estimated accelerometer bias (m/s²)
-        self.accel_bias = np.zeros(3)
-        # Estimated gyroscope bias (rad/s)
-        self.gyro_bias = np.zeros(3)
 
     def reset(self):
         # Reset the probe to its initial state
@@ -46,7 +47,7 @@ class ProbeState:
 
         # Position (m)
         self.position = np.array([
-            config.IMU0_OFFSET,
+            self.offset,
             0.0,
             config.BREAST_C + config.PCB_OFFSET
         ])

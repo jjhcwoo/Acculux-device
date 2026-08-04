@@ -50,18 +50,28 @@ def quaternion_to_euler(q):
         yaw
     ])
 
+def position_corrector(pos0, pos1):
+    d = pos1 - pos0
+    measured_distance = np.linalg.norm(d)
+    scale = config.IMU_DISTANCE / measured_distance
+    mid = (pos0 + pos1) / 2
+    direction = (pos1 - pos0) / np.linalg.norm(pos1 - pos0)
+    return mid - direction * config.IMU_DISTANCE / 2, mid + direction * config.IMU_DISTANCE / 2
+
 class Serial_Parser(QObject):
     status_signal = pyqtSignal(str)
     connection_signal = pyqtSignal(bool)
 
-    def __init__(self, filter, window):
+    def __init__(self, filt0, filt1, window):
         super().__init__()
         port = find_probe_port()
         self.serial_port = serial.Serial(port, BAUD, timeout = None)
         self.connection_signal.emit(True)
         self.window = window
-        self.filter = filter
-        window.filter = filter
+        self.filter0 = filt0
+        self.filter1 = filt1
+        #window.filter0 = filter0
+        #window.filter1 = filter1
         self.calibration_requested = False
         self.force = Force()
 
@@ -167,14 +177,20 @@ class Serial_Parser(QObject):
         print("Calibration complete. Bias values:")
         print(bias_values)
 
-        self.filter.state.set_accel_bias(bias_values[0:3])
-        self.filter.state.set_gyro_bias(bias_values[3:6])
-        self.filter.state.set_calibrated_accel_bias(bias_values[0:3])
-        self.filter.state.set_calibrated_gyro_bias(bias_values[3:6])
+        self.filter0.state.set_accel_bias(bias_values[0:3])
+        self.filter0.state.set_gyro_bias(bias_values[3:6])
+        self.filter0.state.set_calibrated_accel_bias(bias_values[0:3])
+        self.filter0.state.set_calibrated_gyro_bias(bias_values[3:6])
+
+        self.filter1.state.set_accel_bias(bias_values[6:9])
+        self.filter1.state.set_gyro_bias(bias_values[9:12])
+        self.filter1.state.set_calibrated_accel_bias(bias_values[6:9])
+        self.filter1.state.set_calibrated_gyro_bias(bias_values[9:12])
 
         # safe to assume that probe is on a flat surface
         #q0 = Quaternion.from_accel([0, 0, -9.80655])
-        self.filter.state.set_quaternion([1, 0, 0, 0])
+        self.filter0.state.set_quaternion([1, 0, 0, 0])
+        self.filter1.state.set_quaternion([1, 0, 0, 0])
         self.status_signal.emit("Calibration complete")
 
         # print(quaternion_to_euler(self.filter.state.quaternion))
@@ -211,16 +227,23 @@ class Serial_Parser(QObject):
                 s[7:10] = s[7:10] * GYRO_FS / 32768
                 s[10:13] = s[10:13] * ACC_FS / 32768
                 s[13:16] = s[13:16] * GYRO_FS / 32768
+                s[5] = -s[5]
+                s[11] = -s[11]
+
            
                 if window.reset_request:
-                    self.filter.reset()
+                    self.filter0.reset()
+                    self.filter1.reset()
                     window.reset_request = False
 
                 if window.scanning:
-                    self.filter.predict(s[4:7], s[7:10], SAMPLE_PERIOD)
-                    position = breast.get_projection(self.filter.state.quaternion, config.IMU0_OFFSET)
-                    self.filter.orientation_update(position)
-                    self.filter.constrain_velocity()
+                    self.filter0.predict(s[4:7], s[7:10], SAMPLE_PERIOD)
+                    self.filter0.constrain_velocity()
+                    self.filter1.predict(s[10:13], s[13:16], SAMPLE_PERIOD)
+                    self.filter1.constrain_velocity()
+                    pos0, pos1 = position_corrector(self.filter0.get_state().position, self.filter1.get_state().position)
+                    self.filter0.get_state().set_position(pos0)
+                    self.filter1.get_state().set_position(pos1)
                     window.latest_force = self.force.convert(raw_force)
 
                 # if time.time() - last_print > 1.0:
@@ -232,17 +255,18 @@ class Serial_Parser(QObject):
 
 
 
-                state = self.filter.get_state()
+                state0 = self.filter0.get_state()
+                state1 = self.filter1.get_state()
 
                 if time.time() - last_print > 1.0:
-                    print("Position:", state.position)
-                    print("Velocity:", state.velocity)
-                    print("Speed:", np.linalg.norm(state.velocity))
+                    print("Position:", state0.position)
+                    print("Velocity:", state0.velocity)
+                    print("Speed:", np.linalg.norm(state0.velocity))
                     print()
                     last_print = time.time()
                 
                 roll, pitch, yaw = quaternion_to_euler(
-                    state.quaternion
+                    state0.quaternion
                 )
 
                 window.latest_angles = np.array([
@@ -251,10 +275,11 @@ class Serial_Parser(QObject):
                     yaw
                 ])
 
-                window.latest_position = state.position.copy()
+                window.latest_position = state0.position.copy()
                 
                 window.plot3D.update_position(
-                    state.position
+                    state0.position,
+                    state1.position
                 )
 
 
