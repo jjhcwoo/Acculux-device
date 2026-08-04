@@ -37,7 +37,7 @@ def get_mesh(n_theta = 20, n_phi = 12):
     
     return verts, faces
 
-def get_projection(q, offset=0):
+def get_projection(q, offset=0, probe=False):
     # given a quaternion orientation, returns the projection of the vector onto the surface
 
     # quaternion x and y are pure quaternions
@@ -68,8 +68,10 @@ def get_projection(q, offset=0):
         (z ** 2) / (c ** 2)
     )
     vz = scale * vz
-    if offset != 0:
-        vz[0] += offset
-        vz[2] += config.PCB_OFFSET
+    if not probe:
+        if offset != 0:
+            vz[0] += offset
+            vz[2] += config.PCB_OFFSET
+        
 
     return np.array(vz)
