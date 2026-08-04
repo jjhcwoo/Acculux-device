@@ -245,17 +245,18 @@ class PyQtGraph3DWindow(QWidget):
             max(0, 1 - np.sin(pitch)**2 - np.sin(roll)**2)
         )
 
-        self.sensor_point.setData(
-            pos=np.array([[x, y, z]])
-        )
+        #self.sensor_point.setData(
+        #    pos=np.array([[x, y, z]])
+        #)
+        return np.array([x, y, z])
 
-    def update_position(self, p0, p1):
+    def update_position(self, p0, p1, pq):
         """
         Update probe position using vector p
 
         """
         self.sensor_point.setData(
-            pos = np.array([p0, p1])
+            pos = np.array([p0, p1, pq])
         )
 
 class SensorPanel(QGroupBox):
