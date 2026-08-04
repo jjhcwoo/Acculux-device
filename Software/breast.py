@@ -67,7 +67,6 @@ def get_projection(q, offset=0):
         (y ** 2) / (b ** 2) +
         (z ** 2) / (c ** 2)
     )
-
     vz = scale * vz
     if offset != 0:
         vz[0] += offset
