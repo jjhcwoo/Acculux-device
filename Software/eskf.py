@@ -64,7 +64,7 @@ class ESKF:
         self.P[0:3,0:3] *= 0.001
 
         # Velocity uncertainty
-        self.P[3:6,3:6] *= 0.001
+        self.P[3:6,3:6] *= 0.1
 
         # Orientation uncertainty
         self.P[6:9,6:9] *= 0.01
@@ -159,7 +159,7 @@ class ESKF:
 
         if self.counter >= 1:
             position = breast.get_projection(self.state.quaternion)
-            #self.orientation_update(position)
+            self.orientation_update(position)
             self.counter = 0
         self.counter += 1
 

@@ -48,6 +48,8 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout)
         self.setCentralWidget(widget)
 
+        self.counter = 0
+
     def update_sensor_display(self):
         roll, pitch, yaw = self.latest_angles
         x, y, z = self.latest_position
@@ -89,12 +91,14 @@ class MainWindow(QMainWindow):
         print("Scan started")
         self.reset_request = True
         self.scanning = True
+        self.counter = 0
 
         # Run for 5 seconds
         self.scan_timer.start(5000)
 
     def stop_scan(self):
 
+        print(self.counter)
         print("Scan finished")
 
         self.scanning = False

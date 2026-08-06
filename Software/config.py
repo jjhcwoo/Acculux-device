@@ -25,7 +25,7 @@ IMU_DISTANCE = 0.071844
 PCB_OFFSET = 0.01425
 
 # Investigate the cause of half angle rotations. Suspect it is related to IMU code not sampling properly.
-SAMPLE_RATE = 1000
+SAMPLE_RATE = 500
 
 SAMPLE_PERIOD = 1 / SAMPLE_RATE
 
