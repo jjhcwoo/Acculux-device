@@ -23,12 +23,19 @@ import breast
 class ESKF:
 
     counter = 0
+    r_imu0 = np.array([config.IMU0_OFFSET,
+                      0.0,
+                      config.PCB_OFFSET])
+    
+    r_imu1 = np.array([config.IMU1_OFFSET,
+                      0.0,
+                      config.PCB_OFFSET])
 
-    def __init__(self, offset):
+    def __init__(self):
         # Initialize filter.
 
         # Nominal state
-        self.state = ProbeState(offset)
+        self.state = ProbeState()
 
         # Error covariance matrix
         # 15 error states:
@@ -39,8 +46,7 @@ class ESKF:
         # dba (3)
         # dbg (3)
         #
-        self.P = np.eye(15)
-        self.offset = offset
+        self.P = np.eye(21)
 
         # Debug storage
         self.specific_force_samples = []
@@ -53,7 +59,7 @@ class ESKF:
         print(self.state.offset)
         self.state.reset()
 
-        self.P = np.eye(15)
+        self.P = np.eye(21)
         # Position uncertainty
         self.P[0:3,0:3] *= 0.001
 
@@ -61,25 +67,46 @@ class ESKF:
         self.P[3:6,3:6] *= 0.001
 
         # Orientation uncertainty
-        self.P[6:9,6:9] *= 0.001
+        self.P[6:9,6:9] *= 0.01
 
         # Bias uncertainty
-        self.P[9:15,9:15] *= 0.001
+        self.P[9:21,9:21] *= 0.001
 
 
-    def predict(self, accel, gyro, dt):
+    def predict(self, accel0, gyro0, accel1, gyro1, dt):
         # Prediction step
 
         # 1. Remove estimated sensor bias
-        accel_corrected = (
-            accel -
-            self.state.accel_bias
+        gyro0_corrected = (
+            gyro0 -
+            self.state.gyro0_bias
         )
 
-        gyro_corrected = (
-            gyro -
-            self.state.gyro_bias
+        gyro1_corrected = (
+            gyro1 - 
+            self.state.gyro1_bias
         )
+
+        accel0_corrected = (
+            accel0 -
+            self.state.accel0_bias -
+            - 0 # dw r R ≈ 0
+            - np.cross(gyro0_corrected,
+                        np.cross(gyro0_corrected,
+                                self.r_imu0))
+        )
+
+        accel1_corrected = (
+            accel1 -
+            self.state.accel1_bias -
+            - 0 # dw r R ≈ 0
+            - np.cross(gyro1_corrected,
+                       np.cross(gyro1_corrected,
+                                self.r_imu1))
+        )
+
+        gyro_corrected = (gyro0_corrected + gyro1_corrected) / 2
+        accel_corrected = (accel0_corrected + accel1_corrected) / 2
 
         old_rotation = self.state.get_rotation_matrix()
 
@@ -131,7 +158,7 @@ class ESKF:
         )
 
         if self.counter >= 1:
-            position = breast.get_projection(self.state.quaternion, self.offset)
+            position = breast.get_projection(self.state.quaternion)
             self.orientation_update(position)
             self.counter = 0
         self.counter += 1
@@ -158,18 +185,22 @@ class ESKF:
 
         R = rotation
         I = np.eye(3)
-        F = np.eye(15)
+        F = np.eye(21)
         F[0:3, 3:6] = I * dt
         F[3:6, 6:9] = (-R @ Quaternion.skew(accel)) * dt
-        F[3:6, 9:12] = -R * dt
+        F[3:6, 9:12] = -R / config.IMU_COUNT * dt
+        F[3:6, 15:18] = -R / config.IMU_COUNT * dt
         F[6:9, 6:9] = np.transpose(Quaternion.from_vector_to_rotation(gyro * dt))
-        F[6:9, 12:15] = -I * dt
+        F[6:9, 12:15] = -I / config.IMU_COUNT * dt
+        F[6:9, 18:21] = -I / config.IMU_COUNT * dt
 
-        Q = np.zeros((15, 15))
-        Q[3:6, 3:6] = config.ACCEL_NOISE * config.ACCEL_NOISE * dt * dt * np.eye(3)
-        Q[6:9, 6:9] = config.GYRO_NOISE * config.GYRO_NOISE * dt * dt * np.eye(3)
-        Q[9:12, 9:12] = config.ACCEL_BIAS_NOISE * config.ACCEL_BIAS_NOISE * dt * np.eye(3)
-        Q[12:15, 12:15] = config.GYRO_BIAS_NOISE * config.GYRO_BIAS_NOISE * dt * np.eye(3)
+        Q = np.zeros((21, 21))
+        Q[3:6, 3:6] = config.ACCEL_NOISE ** 2 / config.IMU_COUNT * dt ** 2 * np.eye(3)
+        Q[6:9, 6:9] = config.GYRO_NOISE ** 2 / config.IMU_COUNT * dt ** 2 * np.eye(3)
+        Q[9:12, 9:12] = config.ACCEL_BIAS_NOISE ** 2 * dt * np.eye(3)
+        Q[12:15, 12:15] = config.GYRO_BIAS_NOISE ** 2 * dt * np.eye(3)
+        Q[15:18, 15:18] = config.ACCEL_BIAS_NOISE ** 2 * dt * np.eye(3)
+        Q[18:21, 18:21] = config.GYRO_BIAS_NOISE ** 2 * dt * np.eye(3)
         
         self.P = F @ self.P @ np.transpose(F) + Q
 
@@ -189,7 +220,7 @@ class ESKF:
         self.inject_error(dx)
 
         # Covariance update (Joseph form)
-        I = np.eye(15)
+        I = np.eye(21)
 
         self.P = (
             (I - K @ H)
@@ -203,13 +234,13 @@ class ESKF:
         # assume 0.1cm accuracy for prediction
         V = np.diag([0.01 ** 2, 0.01 ** 2, 0.01 ** 2])
         
-        H = np.zeros((3, 15))
+        H = np.zeros((3, 21))
         H[0:3, 0:3] = np.eye(3)
         K = self.P @ np.transpose(H) @ np.linalg.inv(H @ self.P @ np.transpose(H) + V)
         dx = K @ (position - self.state.position)
         self.inject_error(dx)
         # poor stability reset
-        self.P = (np.eye(15) - K @ H) @ self.P
+        self.P = (np.eye(21) - K @ H) @ self.P
 
     def constrain_velocity(self):
         '''

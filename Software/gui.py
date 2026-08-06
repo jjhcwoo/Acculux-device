@@ -216,7 +216,7 @@ class PyQtGraph3DWindow(QWidget):
         self.view.addItem(item)
 
         self.sensor_point = gl.GLScatterPlotItem(
-            pos=np.array([[config.IMU0_OFFSET, 0, config.BREAST_C + config.PCB_OFFSET], [config.IMU1_OFFSET, 0, config.BREAST_C + config.PCB_OFFSET]]),   # Initial position
+            pos=np.array([0, 0, config.BREAST_C]),   # Initial position
             color=(0.5, 0, 0, 1),          # Red
             size=20
         )
@@ -250,13 +250,13 @@ class PyQtGraph3DWindow(QWidget):
         #)
         return np.array([x, y, z])
 
-    def update_position(self, p0, p1, pq):
+    def update_data_point(self, p):
         """
         Update probe position using vector p
 
         """
         self.sensor_point.setData(
-            pos = np.array([p0, p1, pq])
+            pos = np.array([p])
         )
 
 class SensorPanel(QGroupBox):

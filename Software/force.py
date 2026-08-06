@@ -18,6 +18,9 @@ class Force:
         # data shape:
         # [FSR1, FSR2, FSR3, FSR4]
 
+        # remove FSR3 since it is broken
+        data = np.delete(data, 2)
+
         self.zero_values = np.mean(
             data,
             axis=0
@@ -29,7 +32,9 @@ class Force:
 
 
     def calculate(self, loaded_data, known_force):
+
         force_per_sensor = known_force / 4
+        loaded_data = np.delete(loaded_data, 2)
         loaded_values = np.mean(
             loaded_data,
             axis=0
@@ -41,7 +46,7 @@ class Force:
             force_per_sensor /
             (loaded_values - self.zero_values)
         )
-        self.gain[2] *= -1
+        #self.gain[2] *= -1
 
         self.offset = (
             -self.gain *
@@ -58,6 +63,9 @@ class Force:
 
     def convert(self, raw):
 
+        # ignore broken force
+        raw = np.delete(raw, 2)
+
         if self.gain is None:
             return 0.0
         force = self.gain * raw + self.offset
@@ -67,4 +75,7 @@ class Force:
         self.filtered_force = (self.alpha * force + (1 - self.alpha) * self.filtered_force)
 
         totalForce = np.sum(force)
+
+        # account for broken sensor
+        totalForce = totalForce * 4 / 3
         return totalForce
