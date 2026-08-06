@@ -131,6 +131,9 @@ class Serial_Parser(QObject):
         for i in range(0, 1000):
             try:
                 s = np.array(self.serial_port.readline().decode().strip('\r\n').split(','), dtype=float)
+                if len(s) != 17:
+                    # print(f"Bad packet ({len(values)} values): {repr(line)}")
+                    continue
                 samples2.append(s[0:4])
                 s[4:7] = s[4:7] * ACC_FS / 32768
                 s[7:10] = s[7:10] * GYRO_FS / 32768
@@ -138,6 +141,8 @@ class Serial_Parser(QObject):
                 s[13:16] = s[13:16] * GYRO_FS / 32768
                 s[5] = -s[5]
                 s[11] = -s[11]
+                s[7] = -s[7]
+                s[13] = -s[13]
                 
                 calibration_values.append(s[4:16])
                 # Bandaid fix, will have to use GUI signals in PyQt
@@ -215,7 +220,7 @@ class Serial_Parser(QObject):
                 values = line.split(',')
 
                 # Make sure packet has the expected number of values
-                if len(values) != 16:
+                if len(values) != 17:
                     # print(f"Bad packet ({len(values)} values): {repr(line)}")
                     continue
 
@@ -230,7 +235,6 @@ class Serial_Parser(QObject):
                 s[11] = -s[11]
                 s[7] = -s[7]
                 s[13] = -s[13]
-
            
                 if window.reset_request:
                     self.filter.reset()
@@ -238,7 +242,7 @@ class Serial_Parser(QObject):
 
                 if window.scanning:
                     self.filter.predict(s[4:7], s[7:10], s[10:13], s[13:16], SAMPLE_PERIOD)
-                    #self.filter.constrain_velocity()
+                    self.filter.constrain_velocity()
                     window.latest_force = self.force.convert(raw_force)
 
                 # if time.time() - last_print > 1.0:
