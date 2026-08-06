@@ -238,7 +238,7 @@ class Serial_Parser(QObject):
 
                 if window.scanning:
                     self.filter.predict(s[4:7], s[7:10], s[10:13], s[13:16], SAMPLE_PERIOD)
-                    self.filter.constrain_velocity()
+                    #self.filter.constrain_velocity()
                     window.latest_force = self.force.convert(raw_force)
 
                 # if time.time() - last_print > 1.0:
@@ -272,7 +272,7 @@ class Serial_Parser(QObject):
                 window.latest_position = state.position.copy()
 
                 window.plot3D.update_data_point(
-                    state.position
+                    breast.get_projection(state.quaternion)
                 )
 
 
