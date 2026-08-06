@@ -143,6 +143,8 @@ class Serial_Parser(QObject):
                 s[11] = -s[11]
                 s[7] = -s[7]
                 s[13] = -s[13]
+                s[9] = -s[9]
+                s[15] = -s[15]
                 
                 calibration_values.append(s[4:16])
                 # Bandaid fix, will have to use GUI signals in PyQt
@@ -235,6 +237,8 @@ class Serial_Parser(QObject):
                 s[11] = -s[11]
                 s[7] = -s[7]
                 s[13] = -s[13]
+                s[9] = -s[9]
+                s[15] = -s[15]
            
                 if window.reset_request:
                     self.filter.reset()
@@ -242,6 +246,7 @@ class Serial_Parser(QObject):
 
                 if window.scanning:
                     self.filter.predict(s[4:7], s[7:10], s[10:13], s[13:16], SAMPLE_PERIOD)
+                    self.filter.update_ellipsoid()
                     self.filter.constrain_velocity()
                     window.latest_force = self.force.convert(raw_force)
                     window.counter += 1
