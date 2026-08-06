@@ -157,11 +157,13 @@ class ESKF:
             dt
         )
 
+        '''
         if self.counter >= 1:
             position = breast.get_projection(self.state.quaternion)
             self.orientation_update(position)
             self.counter = 0
         self.counter += 1
+        '''
 
     def predict_covariance(
         self,
@@ -229,6 +231,40 @@ class ESKF:
             +
             K @ R @ K.T
         )
+    
+    def update_ellipsoid(self):
+
+        p = self.state.position
+
+        a = config.BREAST_A / 2
+        b = config.BREAST_B / 2
+        c = config.BREAST_C
+
+        x, y, z = p
+
+        h = (
+            (x*x)/(a*a) +
+            (y*y)/(b*b) +
+            (z*z)/(c*c)
+        )
+
+        innovation = np.array([
+            1.0 - h
+        ])
+
+        H = np.zeros((1,21))
+
+        H[0,0] = 2*x/(a*a)
+        H[0,1] = 2*y/(b*b)
+        H[0,2] = 2*z/(c*c)
+
+        R = np.array([[0.001]])
+
+        self.update(
+            innovation,
+            H,
+            R
+    )
 
     def orientation_update(self, position):
         # assume 0.1cm accuracy for prediction
