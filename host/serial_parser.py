@@ -147,7 +147,6 @@ class Serial_Parser(QObject):
                 s[15] = -s[15]
                 
                 calibration_values.append(s[4:16])
-                # Bandaid fix, will have to use GUI signals in PyQt
             except RuntimeError:
                 self.connection_signal.emit(False)
                 break
@@ -262,12 +261,12 @@ class Serial_Parser(QObject):
 
                 state = self.filter.get_state()
 
-                if time.time() - last_print > 1.0:
-                    print("Position:", state.position)
-                    print("Velocity:", state.velocity)
-                    print("Speed:", np.linalg.norm(state.velocity))
-                    print()
-                    last_print = time.time()
+                # if time.time() - last_print > 1.0:
+                #     print("Position:", state.position)
+                #     print("Velocity:", state.velocity)
+                #     print("Speed:", np.linalg.norm(state.velocity))
+                #     print()
+                #     last_print = time.time()
                 
                 roll, pitch, yaw = quaternion_to_euler(
                     state.quaternion
@@ -285,8 +284,6 @@ class Serial_Parser(QObject):
                     breast.get_projection(state.quaternion)
                 )
 
-
-            # Bandaid fix, will have to use GUI signals in PyQt
             except RuntimeError:
                 self.connection_signal.emit(False)
                 break

@@ -192,16 +192,16 @@ class PyQtGraph3DWindow(QWidget):
         # 1. Create the 3D View Widget
         self.view = gl.GLViewWidget()
         self.view.setCameraPosition(
-            distance=14,
+            distance=0.4,
             elevation=45,
-            azimuth=0
+            azimuth=-90
         )
         layout.addWidget(self.view)
 
         # 2. Add a spatial grid for visual reference
         grid = gl.GLGridItem()
-        grid.setSize(10, 10, 10)
-        grid.setSpacing(1, 1, 1)
+        grid.setSize(0.2, 0.2, 0.2)
+        grid.setSpacing(0.02, 0.02, 0.02)
         self.view.addItem(grid)
 
         verts, faces = breast.get_mesh()
