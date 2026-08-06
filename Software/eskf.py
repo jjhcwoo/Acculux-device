@@ -159,7 +159,7 @@ class ESKF:
 
         if self.counter >= 1:
             position = breast.get_projection(self.state.quaternion)
-            self.orientation_update(position)
+            #self.orientation_update(position)
             self.counter = 0
         self.counter += 1
 
