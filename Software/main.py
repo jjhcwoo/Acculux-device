@@ -13,10 +13,9 @@ import config
 def run():
     app, window = create_gui()
 
-    filt0 = ESKF(config.IMU0_OFFSET)
-    filt1 = ESKF(config.IMU1_OFFSET)
+    filter = ESKF()
 
-    parser = Serial_Parser(filt0, filt1, window)
+    parser = Serial_Parser(filter, window)
 
     parser.status_signal.connect(window.show_status_popup)
     parser.connection_signal.connect(window.update_connection_status)

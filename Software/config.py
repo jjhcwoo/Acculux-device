@@ -1,5 +1,7 @@
 import numpy as np
 
+IMU_COUNT = 2
+
 GRAVITY = np.array([0.0, 0.0, 9.80655])
 
 ACCEL_NOISE = 0.0070 * 9.80655
@@ -22,7 +24,8 @@ IMU_DISTANCE = 0.071844
 
 PCB_OFFSET = 0.01425
 
-SAMPLE_RATE = 1000
+# Investigate the cause of half angle rotations. Suspect it is related to IMU code not sampling properly.
+SAMPLE_RATE = 500
 
 SAMPLE_PERIOD = 1 / SAMPLE_RATE
 
