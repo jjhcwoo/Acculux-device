@@ -243,6 +243,9 @@ class Serial_Parser(QObject):
                     self.filter.reset()
                     window.reset_request = False
 
+                if s[16]:
+                    window.bottom.scanButton.click()
+
                 if window.scanning:
                     self.filter.predict(s[4:7], s[7:10], s[10:13], s[13:16], SAMPLE_PERIOD)
                     self.filter.update_ellipsoid()
@@ -278,7 +281,7 @@ class Serial_Parser(QObject):
                     yaw
                 ])
 
-                window.latest_position = state.position.copy()
+                window.latest_position = breast.get_projection(state.quaternion) * 100
 
                 window.plot3D.update_data_point(
                     breast.get_projection(state.quaternion)
