@@ -244,6 +244,7 @@ class Serial_Parser(QObject):
                     self.filter.predict(s[4:7], s[7:10], s[10:13], s[13:16], SAMPLE_PERIOD)
                     self.filter.constrain_velocity()
                     window.latest_force = self.force.convert(raw_force)
+                    window.counter += 1
 
                 # if time.time() - last_print > 1.0:
                 #     print("Position:", state.position)
