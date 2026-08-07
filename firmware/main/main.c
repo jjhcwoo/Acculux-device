@@ -27,6 +27,9 @@ static int16_t force_sensor_bottom_left = 0;
 static int16_t force_sensor_top_right = 0;
 static int16_t force_sensor_bottom_right = 0;
 
+// fake LED light
+static int16_t counter = 0;
+
 // These variables track what is the next force sensor being read.
 // false = AIN0;
 // true = AIN1;
@@ -90,8 +93,10 @@ static void gpio_task(void* arg)
     ICM42688 *imu0hdl;
     ICM42688 *imu1hdl;
 
-    for (;;) {
-        if (xQueueReceive(gpio_evt_queue, &imu0hdl, portMAX_DELAY) && xQueueReceive(gpio_evt_queue, &imu1hdl, portMAX_DELAY)) {
+    for (;;) 
+    {
+        if (xQueueReceive(gpio_evt_queue, &imu0hdl, portMAX_DELAY) && xQueueReceive(gpio_evt_queue, &imu1hdl, portMAX_DELAY)) 
+        {
             /*
             int16_t imu_arr[] = {accelerometer_x(imu0hdl), accelerometer_y(imu0hdl), accelerometer_z(imu0hdl),
             gyroscope_x(imu0hdl), gyroscope_y(imu0hdl), gyroscope_z(imu0hdl),
@@ -103,15 +108,28 @@ static void gpio_task(void* arg)
             fwrite(f_arr, sizeof(int16_t), 4, stdout);
             fwrite("\n", sizeof(char), 1, stdout);
             */
-            
-            //printf("%d,", gpio_get_level(GPIO_EXT_BTN));
+            if (force_sensor_top_left > 10000 && counter == 0)
+            {
+                gpio_set_level(GPIO_STATUS_LED, 1);
+                counter++;
+            }
+            else if (counter != 0)
+            {
+                counter++;
+                
+            }
+            if (counter >= 2500)
+            {
+                gpio_set_level(GPIO_STATUS_LED, 0);
+                counter = 0;
+            }
             printf("%d,%d,%d,%d,", force_sensor_top_left, force_sensor_bottom_left, force_sensor_bottom_right, force_sensor_top_right);
             printf("%d,%d,%d,", accelerometer_x(imu0hdl), accelerometer_y(imu0hdl), accelerometer_z(imu0hdl));
             printf("%d,%d,%d,", gyroscope_x(imu0hdl), gyroscope_y(imu0hdl), gyroscope_z(imu0hdl));
             printf("%d,%d,%d,", accelerometer_x(imu1hdl), accelerometer_y(imu1hdl), accelerometer_z(imu1hdl));
-            printf("%d,%d,%d", gyroscope_x(imu1hdl), gyroscope_y(imu1hdl), gyroscope_z(imu1hdl));
+            printf("%d,%d,%d,", gyroscope_x(imu1hdl), gyroscope_y(imu1hdl), gyroscope_z(imu1hdl));
+            printf("%d", gpio_get_level(GPIO_EXT_BTN));
             printf("\n");
-            
         }
     }
 }
@@ -141,8 +159,8 @@ void app_main(void)
 
 
     // 1kHz=6, 100Hz=8, 6 is too fast for 5mbaud
-    int acc_odr = 6;
-    int gyr_odr = 6;
+    int acc_odr = 15;
+    int gyr_odr = 15;
 
     esp_err_t ret;
     uint8_t buffer[4];

@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
         self.counter = 0
 
         # Run for 5 seconds
-        self.scan_timer.start(5000)
+        self.scan_timer.start(config.SCAN_TIME * 1000)
 
     def stop_scan(self):
 
