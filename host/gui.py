@@ -52,6 +52,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(widget)
 
         self.counter = 0
+        self.flag = False
 
     def update_sensor_display(self):
         roll, pitch, yaw = self.latest_angles
@@ -74,7 +75,10 @@ class MainWindow(QMainWindow):
             force
         )
 
-        self.scan_data.append([x, y, z, roll, pitch, yaw, force]) 
+        if self.scanning:
+            self.scan_data.append([x, y, z, roll, pitch, yaw, force]) 
+        else:
+            self.scan_data.append([0, 0, 0, 0, 0, 0, 0]) 
 
     def update_connection_status(self, connected):
         if connected:
@@ -99,7 +103,7 @@ class MainWindow(QMainWindow):
         self.counter = 0
 
         # Run for 5 seconds
-        self.scan_timer.start(config.SCAN_TIME * 1000)
+        self.scan_timer.start(int(config.SCAN_TIME * 1000))
 
     def stop_scan(self):
 
@@ -279,13 +283,19 @@ class PyQtGraph3DWindow(QWidget):
         #)
         return np.array([x, y, z])
 
-    def update_data_point(self, p):
+    def update_data_point(self, p, pointColor):
         """
         Update probe position using vector p
 
         """
         self.sensor_point.setData(
-            pos = np.array([p])
+            pos = np.array([p]),
+            color = pointColor
+        )
+
+    def change_color(self, pointColor):
+        self.sensor_point.setData(
+            color = pointColor,
         )
 
 class SensorPanel(QGroupBox):

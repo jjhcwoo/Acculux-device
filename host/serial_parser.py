@@ -175,7 +175,7 @@ class Serial_Parser(QObject):
                         continue
 
         samples2 = np.array(samples2)
-        self.force.calculate(samples2, known_force = 1.102)
+        self.force.calculate(samples2, known_force = 1.3)
 
         bias_values = np.mean(calibration_values, axis=0)
         bias_values[0:3] = bias_values[0:3] + GRAVITY
@@ -283,9 +283,16 @@ class Serial_Parser(QObject):
 
                 window.latest_position = breast.get_projection(state.quaternion) * 100
 
-                window.plot3D.update_data_point(
-                    breast.get_projection(state.quaternion)
-                )
+                if window.scanning:
+                    window.plot3D.update_data_point(
+                        breast.get_projection(state.quaternion),
+                        (0, 0.5, 0, 1),
+                    )
+                else:
+                    window.plot3D.update_data_point(
+                        breast.get_projection(state.quaternion),
+                        (0.5, 0, 0, 1),
+                    )
 
             except RuntimeError:
                 self.connection_signal.emit(False)

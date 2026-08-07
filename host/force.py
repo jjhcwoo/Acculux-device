@@ -81,4 +81,6 @@ class Force:
 
         # account for broken sensor
         totalForce = totalForce * 4 / 3
+        if totalForce < 0.5:
+            return 0
         return totalForce
