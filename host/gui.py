@@ -4,6 +4,7 @@ import pyqtgraph.opengl as gl
 from PyQt6.QtCore import QSize, Qt, QTimer
 from PyQt6.QtWidgets import QApplication, QGridLayout, QHBoxLayout, QMainWindow, QPushButton, QWidget, QVBoxLayout, QGroupBox, QFormLayout, QLabel, QMessageBox
 from PyQt6.QtGui import QFont
+import csv
 
 import breast
 import config
@@ -21,6 +22,7 @@ class MainWindow(QMainWindow):
         self.latest_angles = np.zeros(3)
         self.latest_force = 0.0
         self.current_popup = None
+        self.scan_data = [] # For recording data
 
         self.scanning = False
         self.reset_request = False
@@ -42,6 +44,7 @@ class MainWindow(QMainWindow):
 
         self.bottom = bottomWindow()
         self.bottom.scanButton.clicked.connect(self.start_scan)
+        self.bottom.saveButton.clicked.connect(self.save_scan)
         layout.addWidget(self.bottom)
 
         widget = QWidget()
@@ -70,6 +73,8 @@ class MainWindow(QMainWindow):
         self.bottom.sensorPanel.update_force(
             force
         )
+
+        self.scan_data.append([x, y, z, roll, pitch, yaw, force]) 
 
     def update_connection_status(self, connected):
         if connected:
@@ -115,6 +120,26 @@ class MainWindow(QMainWindow):
         popup.show()
         self.current_popup = popup
 
+    def save_scan(self):
+        headers = ["X", "Y", "Z", "Roll", "Pitch", "Yaw", "Force"] 
+
+        if not self.scan_data:
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("Error")
+            dlg.setText("No Data To Export")
+            dlg.exec()
+            return  
+
+        with open("output.csv", "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(headers) # Write headers
+            writer.writerows(self.scan_data) # Write data
+
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("Saved")
+            dlg.setText("Data successfully exported")
+            dlg.exec()        
+
 class bottomWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -124,7 +149,7 @@ class bottomWindow(QWidget):
         self.statusLight = QLabel()
         self.statusLight.setFixedSize(30, 30)
         self.statusLight.setStyleSheet("""
-        background-color: red;
+        background-color: green;
         border-radius: 15px;
         border: 2px solid black;
     """)
