@@ -1,0 +1,15 @@
+#define DEVICE_CONFIG 17
+#define INT_CONFIG 20
+#define TEMP_DATA 29
+#define ACCEL_DATA_X 31
+#define ACCEL_DATA_Y 33
+#define ACCEL_DATA_Z 35
+#define GYRO_DATA_X 37
+#define GYRO_DATA_Y 39
+#define GYRO_DATA_Z 41
+#define PWR_MGMT0 78
+#define GYRO_CONFIG0 79
+#define ACCEL_CONFIG0 80
+#define INT_SOURCE0 101
+#define WHO_AM_I 117
+#define REG_BANK_SEL 118

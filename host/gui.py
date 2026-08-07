@@ -4,6 +4,10 @@ import pyqtgraph.opengl as gl
 from PyQt6.QtCore import QSize, Qt, QTimer
 from PyQt6.QtWidgets import QApplication, QGridLayout, QHBoxLayout, QMainWindow, QPushButton, QWidget, QVBoxLayout, QGroupBox, QFormLayout, QLabel, QMessageBox
 from PyQt6.QtGui import QFont
+import csv
+
+import breast
+import config
 
 font = QFont()
 font.setPointSize(12)
@@ -18,6 +22,7 @@ class MainWindow(QMainWindow):
         self.latest_angles = np.zeros(3)
         self.latest_force = 0.0
         self.current_popup = None
+        self.scan_data = [] # For recording data
 
         self.scanning = False
         self.reset_request = False
@@ -39,11 +44,14 @@ class MainWindow(QMainWindow):
 
         self.bottom = bottomWindow()
         self.bottom.scanButton.clicked.connect(self.start_scan)
+        self.bottom.saveButton.clicked.connect(self.save_scan)
         layout.addWidget(self.bottom)
 
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
+        self.counter = 0
 
     def update_sensor_display(self):
         roll, pitch, yaw = self.latest_angles
@@ -66,6 +74,8 @@ class MainWindow(QMainWindow):
             force
         )
 
+        self.scan_data.append([x, y, z, roll, pitch, yaw, force]) 
+
     def update_connection_status(self, connected):
         if connected:
             self.bottom.statusLight.setStyleSheet(
@@ -86,12 +96,14 @@ class MainWindow(QMainWindow):
         print("Scan started")
         self.reset_request = True
         self.scanning = True
+        self.counter = 0
 
         # Run for 5 seconds
-        self.scan_timer.start(5000)
+        self.scan_timer.start(10000)
 
     def stop_scan(self):
 
+        print(self.counter)
         print("Scan finished")
 
         self.scanning = False
@@ -108,6 +120,26 @@ class MainWindow(QMainWindow):
         popup.show()
         self.current_popup = popup
 
+    def save_scan(self):
+        headers = ["X", "Y", "Z", "Roll", "Pitch", "Yaw", "Force"] 
+
+        if not self.scan_data:
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("Error")
+            dlg.setText("No Data To Export")
+            dlg.exec()
+            return  
+
+        with open("output.csv", "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(headers) # Write headers
+            writer.writerows(self.scan_data) # Write data
+
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("Saved")
+            dlg.setText("Data successfully exported")
+            dlg.exec()        
+
 class bottomWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -117,7 +149,7 @@ class bottomWindow(QWidget):
         self.statusLight = QLabel()
         self.statusLight.setFixedSize(30, 30)
         self.statusLight.setStyleSheet("""
-        background-color: red;
+        background-color: green;
         border-radius: 15px;
         border: 2px solid black;
     """)
@@ -185,47 +217,19 @@ class PyQtGraph3DWindow(QWidget):
         # 1. Create the 3D View Widget
         self.view = gl.GLViewWidget()
         self.view.setCameraPosition(
-            distance=14,
+            distance=0.4,
             elevation=45,
-            azimuth=0
+            azimuth=-90
         )
         layout.addWidget(self.view)
 
         # 2. Add a spatial grid for visual reference
         grid = gl.GLGridItem()
-        grid.setSize(10, 10, 10)
-        grid.setSpacing(1, 1, 1)
+        grid.setSize(0.2, 0.2, 0.2)
+        grid.setSpacing(0.02, 0.02, 0.02)
         self.view.addItem(grid)
 
-        # Add reference semi-circle
-        radius = 3
-        n_theta = 20      # Around z-axis
-        n_phi = 12        # From top to equator
-        theta = np.linspace(0, 2*np.pi, n_theta)
-        phi = np.linspace(0, np.pi/2, n_phi)   # Only upper half
-        theta, phi = np.meshgrid(theta, phi)
-
-        # Cartesian coordinates
-        x = radius * np.sin(phi) * np.cos(theta)
-        y = radius * np.sin(phi) * np.sin(theta)
-        z = radius * np.cos(phi)
-
-        # Convert grid to vertices
-        verts = np.vstack([x.ravel(), y.ravel(), z.ravel()]).T
-
-        # Build triangular faces
-        faces = []
-        for i in range(n_phi - 1):
-            for j in range(n_theta - 1):
-                a = i * n_theta + j
-                b = a + 1
-                c = a + n_theta
-                d = c + 1
-
-                faces.append([a, c, b])
-                faces.append([b, c, d])
-
-        faces = np.array(faces)
+        verts, faces = breast.get_mesh()
 
         mesh = gl.MeshData(vertexes=verts, faces=faces)
 
@@ -241,13 +245,11 @@ class PyQtGraph3DWindow(QWidget):
         self.view.addItem(item)
 
         self.sensor_point = gl.GLScatterPlotItem(
-            pos=np.array([[0, 0, radius]]),   # Initial position
+            pos=np.array([0, 0, config.BREAST_C]),   # Initial position
             color=(0.5, 0, 0, 1),          # Red
             size=20
         )
         self.view.addItem(self.sensor_point)
-
-        self.radius = radius
 
     def update_orientation(self, roll, pitch):
         """
@@ -272,11 +274,19 @@ class PyQtGraph3DWindow(QWidget):
             max(0, 1 - np.sin(pitch)**2 - np.sin(roll)**2)
         )
 
+        #self.sensor_point.setData(
+        #    pos=np.array([[x, y, z]])
+        #)
+        return np.array([x, y, z])
+
+    def update_data_point(self, p):
+        """
+        Update probe position using vector p
+
+        """
         self.sensor_point.setData(
-            pos=np.array([[x, y, z]])
+            pos = np.array([p])
         )
-
-
 
 class SensorPanel(QGroupBox):
     def __init__(self):

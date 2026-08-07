@@ -72,7 +72,7 @@ class IMUCalibration:
         gravity_world = np.array([
             0,
             0,
-            9.81
+            9.80655
         ])
 
 
