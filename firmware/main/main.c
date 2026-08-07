@@ -108,9 +108,9 @@ static void gpio_task(void* arg)
             fwrite(f_arr, sizeof(int16_t), 4, stdout);
             fwrite("\n", sizeof(char), 1, stdout);
             */
-            if (force_sensor_top_left > 10000 && counter == 0)
+            if (gpio_get_level(GPIO_EXT_BTN) && counter == 0)
             {
-                gpio_set_level(GPIO_STATUS_LED, 1);
+                gpio_set_level(GPIO_EXT_LED, 1);
                 counter++;
             }
             else if (counter != 0)
@@ -120,7 +120,7 @@ static void gpio_task(void* arg)
             }
             if (counter >= 2500)
             {
-                gpio_set_level(GPIO_STATUS_LED, 0);
+                gpio_set_level(GPIO_EXT_LED, 0);
                 counter = 0;
             }
             printf("%d,%d,%d,%d,", force_sensor_top_left, force_sensor_bottom_left, force_sensor_bottom_right, force_sensor_top_right);
